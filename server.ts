@@ -21,6 +21,7 @@ import { assignmentsRouter } from "./src/routes/assignments";
 import { gamificationRouter } from "./src/routes/gamification";
 import { notificationsRouter } from "./src/routes/notifications";
 import { analyticsRouter } from "./src/routes/analytics";
+import { studentAIRouter } from "./src/routes/studentAI";
 import { appConfig, getJwtSecret, isProduction } from "./src/config";
 import { storageProvider } from "./src/services/storage";
 
@@ -28,6 +29,10 @@ const JWT_SECRET = getJwtSecret();
 
 async function startServer() {
   const app = express();
+  
+  // Trust the first proxy to correctly resolve user IPs for rate limiting
+  app.set("trust proxy", 1);
+
   const PORT = appConfig.port;
   const fs = await import("fs/promises");
   await fs.mkdir(appConfig.storageRoot, { recursive: true });
@@ -51,6 +56,10 @@ async function startServer() {
     max: 1000,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false },
+    handler: (req, res, next, options) => {
+      res.status(options.statusCode).json({ error: "Too many requests, please try again later." });
+    },
   });
 
   const aiLimiter = rateLimit({
@@ -58,6 +67,10 @@ async function startServer() {
     max: 100, // 100 AI requests per 15 mins
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false },
+    handler: (req, res, next, options) => {
+      res.status(options.statusCode).json({ error: "Too many AI requests, please try again later." });
+    },
   });
 
   app.use("/api", globalLimiter);
@@ -75,7 +88,9 @@ async function startServer() {
   app.use("/api/gamification", gamificationRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/analytics", analyticsRouter);
+  app.use("/api/student/ai", studentAIRouter);
 
+  let aiStatusCache = { status: "unknown", lastChecked: 0 };
   app.get("/health", async (_req, res) => {
     let database = "ok";
     try {
@@ -84,11 +99,32 @@ async function startServer() {
       database = "error";
     }
     const storage = await storageProvider.exists("");
+    
+    let aiStatus = "not_configured";
+    if (process.env.GEMINI_API_KEY) {
+      if (Date.now() - aiStatusCache.lastChecked > 300000) { // 5 mins
+        try {
+          const { GoogleGenAI } = await import("@google/genai");
+          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          await ai.models.generateContent({
+            model: process.env.FAST_MODEL || process.env.GEMINI_FAST_MODEL || "gemini-3.8-flash",
+            contents: "ping",
+            config: { maxOutputTokens: 1 }
+          });
+          aiStatusCache = { status: "ok", lastChecked: Date.now() };
+        } catch (e) {
+          console.error("AI check error:", e);
+          aiStatusCache = { status: "error", lastChecked: Date.now() };
+        }
+      }
+      aiStatus = aiStatusCache.status;
+    }
+
     res.status(database === "ok" && storage ? 200 : 503).json({
       status: database === "ok" && storage ? "ok" : "degraded",
       database,
       storage: storage ? "ok" : "error",
-      ai: process.env.GEMINI_API_KEY ? "configured" : "not_configured",
+      ai: aiStatus,
     });
   });
 

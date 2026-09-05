@@ -1,4 +1,6 @@
-export interface AIChatMessage {
+const fs = require('fs');
+
+const code = `export interface AIChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -9,7 +11,7 @@ const getHeaders = () => {
   const token = localStorage.getItem('phk_token');
   return {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    ...(token ? { 'Authorization': \`Bearer \${token}\` } : {})
   };
 };
 
@@ -21,10 +23,6 @@ export class AITutorService {
         headers: getHeaders(),
         body: JSON.stringify({ message, context })
       });
-      if (!res.ok) {
-        if (res.status === 429) return "Hệ thống đang quá tải, vui lòng thử lại sau ít phút.";
-        return "Xin lỗi, đã có lỗi kết nối tới AI Tutor.";
-      }
       const data = await res.json();
       return data.reply || "Xin lỗi, AI Tutor đang bảo trì.";
     } catch (e) {
@@ -40,7 +38,6 @@ export class AITutorService {
         headers: getHeaders(),
         body: JSON.stringify({ concept })
       });
-      if (!res.ok) return "Không lấy được gợi ý, vui lòng thử lại sau.";
       const data = await res.json();
       return data.hint || "Không lấy được gợi ý, vui lòng thử lại sau.";
     } catch (e) {
@@ -56,7 +53,6 @@ export class AITutorService {
         headers: getHeaders(),
         body: JSON.stringify({ text })
       });
-      if (!res.ok) return "Không lấy được giải thích, vui lòng thử lại sau.";
       const data = await res.json();
       return data.simplified || "Không lấy được giải thích, vui lòng thử lại sau.";
     } catch (e) {
@@ -65,3 +61,6 @@ export class AITutorService {
     }
   }
 }
+`;
+
+fs.writeFileSync('src/services/aiTutorService.ts', code);

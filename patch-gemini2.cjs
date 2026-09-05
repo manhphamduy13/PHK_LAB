@@ -1,50 +1,39 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { ModelRouter, AITaskType } from "./ModelRouter";
-import { aiProvider as configuredProvider } from "../../config";
+const fs = require('fs');
+let code = fs.readFileSync('src/services/ai/GeminiProvider.ts', 'utf8');
 
-export class GeminiProvider {
-  private ai: GoogleGenAI;
-
-  constructor() {
-    if (configuredProvider !== "gemini") {
-      throw `Unsupported AI_PROVIDER: ${configuredProvider}`;
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY is missing. Using fallback key to prevent ADC.");
-    }
-    this.ai = new GoogleGenAI({ apiKey: apiKey || "MISSING_API_KEY_PLEASE_CONFIGURE_IN_AI_STUDIO_SECRETS" });
-  }
-
-  async generateText(
-    prompt: string,
+const oldCode = `  async generateStructuredOutput<T>(
+    promptOrContents: string | any[],
+    schema: any, // Zod schema or raw JSON schema definition
     taskType: AITaskType = AITaskType.NORMAL_TASK,
     systemInstruction?: string,
-  ): Promise<string> {
-    if (!process.env.GEMINI_API_KEY) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return "Đây là câu trả lời mô phỏng từ AI Tutor (do chưa cài GEMINI_API_KEY). Thầy có thể cài API Key để AI trả lời thông minh thật nhé!";
-    }
-    
+  ): Promise<T> {
     const model = ModelRouter.getModelForTask(taskType);
     try {
       const response = await this.ai.models.generateContent({
         model: model,
-        contents: prompt,
+        contents: promptOrContents,
         config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
           systemInstruction: systemInstruction,
-          temperature: 0.7,
+          temperature: 0.2, // Low temperature for extraction
         },
       });
-      return response.text || "";
+      const text = response.text;
+      if (!text) {
+        throw new Error("Empty response from model");
+      }
+      return JSON.parse(text) as T;
     } catch (error) {
-      console.error(`Error in generateText with model ${model}:`, error);
+      console.error(
+        \`Error in generateStructuredOutput with model \${model}:\`,
+        error,
+      );
       throw error;
     }
-  }
+  }`;
 
-  async generateStructuredOutput<T>(
+const newCode = `  async generateStructuredOutput<T>(
     promptOrContents: string | any[],
     schema: any, // Zod schema or raw JSON schema definition
     taskType: AITaskType = AITaskType.NORMAL_TASK,
@@ -99,12 +88,13 @@ export class GeminiProvider {
       return JSON.parse(text) as T;
     } catch (error) {
       console.error(
-        `Error in generateStructuredOutput with model ${model}:`,
+        \`Error in generateStructuredOutput with model \${model}:\`,
         error,
       );
       throw error;
     }
-  }
-}
+  }`;
 
-export const aiProvider = new GeminiProvider();
+code = code.replace(oldCode, newCode);
+fs.writeFileSync('src/services/ai/GeminiProvider.ts', code);
+console.log("Patched GeminiProvider.ts");

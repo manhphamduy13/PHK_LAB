@@ -15,6 +15,7 @@ export default function AIPipelineDashboard() {
       const res = await fetch('/api/ai/jobs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) return; // Prevent parsing errors on rate limit
       const data = await res.json();
       if (data.jobs) setJobs(data.jobs);
     } catch (error) {

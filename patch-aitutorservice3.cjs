@@ -1,4 +1,6 @@
-export interface AIChatMessage {
+const fs = require('fs');
+
+const code = `export interface AIChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -9,7 +11,7 @@ const getHeaders = () => {
   const token = localStorage.getItem('phk_token');
   return {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    ...(token ? { 'Authorization': \`Bearer \${token}\` } : {})
   };
 };
 
@@ -65,3 +67,6 @@ export class AITutorService {
     }
   }
 }
+`;
+
+fs.writeFileSync('src/services/aiTutorService.ts', code);

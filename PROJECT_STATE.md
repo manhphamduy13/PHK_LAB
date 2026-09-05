@@ -90,3 +90,9 @@ Simulation Engine exists.
 # NEXT TASK
 
 Deployment review. Do not deploy automatically. Do not start a new phase automatically.
+-e 
+---
+
+# GOOGLE AI STUDIO DEMO STATUS
+Status: READY
+The application has been successfully configured and tested for a controlled 30-user demo in the AI Studio environment. Note that storage is ephemeral.

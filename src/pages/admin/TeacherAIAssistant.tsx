@@ -29,6 +29,12 @@ export default function TeacherAIAssistant() {
         },
         body: JSON.stringify({ message: input })
       });
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error("Hệ thống đang quá tải, vui lòng thử lại sau.");
+        }
+        throw new Error("Lỗi kết nối tới Teacher AI");
+      }
       const data = await res.json();
       
       const aiMessage = {

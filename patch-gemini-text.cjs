@@ -1,4 +1,6 @@
-import { GoogleGenAI, Type } from "@google/genai";
+const fs = require('fs');
+
+const code = `import { GoogleGenAI, Type } from "@google/genai";
 import { ModelRouter, AITaskType } from "./ModelRouter";
 import { aiProvider as configuredProvider } from "../../config";
 
@@ -7,7 +9,7 @@ export class GeminiProvider {
 
   constructor() {
     if (configuredProvider !== "gemini") {
-      throw `Unsupported AI_PROVIDER: ${configuredProvider}`;
+      throw \`Unsupported AI_PROVIDER: \${configuredProvider}\`;
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -39,7 +41,7 @@ export class GeminiProvider {
       });
       return response.text || "";
     } catch (error) {
-      console.error(`Error in generateText with model ${model}:`, error);
+      console.error(\`Error in generateText with model \${model}:\`, error);
       throw error;
     }
   }
@@ -99,7 +101,7 @@ export class GeminiProvider {
       return JSON.parse(text) as T;
     } catch (error) {
       console.error(
-        `Error in generateStructuredOutput with model ${model}:`,
+        \`Error in generateStructuredOutput with model \${model}:\`,
         error,
       );
       throw error;
@@ -108,3 +110,6 @@ export class GeminiProvider {
 }
 
 export const aiProvider = new GeminiProvider();
+`;
+
+fs.writeFileSync('src/services/ai/GeminiProvider.ts', code);

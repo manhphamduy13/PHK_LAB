@@ -14,7 +14,7 @@ export function getJwtSecret(): string {
 }
 
 export const appConfig = {
-  port: Number.parseInt(process.env.PORT || "3000", 10),
+  port: 3000,
   frontendUrl: process.env.FRONTEND_URL?.trim() || "",
   maxPdfSize: Number.parseInt(
     process.env.MAX_PDF_SIZE || String(50 * 1024 * 1024),

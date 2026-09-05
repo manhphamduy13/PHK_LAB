@@ -12,18 +12,18 @@ export class ModelRouter {
     let fastModel =
       process.env.FAST_MODEL ||
       process.env.GEMINI_FAST_MODEL ||
-      "gemini-2.5-flash";
+      "gemini-3.8-flash";
     let reasoningModel =
       process.env.REASONING_MODEL ||
       process.env.GEMINI_REASONING_MODEL ||
-      "gemini-2.5-pro";
+      "gemini-3.1-pro-preview";
 
     // Fallback if the user accidentally pastes an API key into the model variable
     if (fastModel.startsWith("AQ.") || fastModel.startsWith("AIza")) {
-      fastModel = "gemini-2.5-flash";
+      fastModel = "gemini-3.8-flash";
     }
     if (reasoningModel.startsWith("AQ.") || reasoningModel.startsWith("AIza")) {
-      reasoningModel = "gemini-2.5-pro";
+      reasoningModel = "gemini-3.1-pro-preview";
     }
 
     switch (taskType) {
