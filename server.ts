@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -20,15 +21,23 @@ import { assignmentsRouter } from "./src/routes/assignments";
 import { gamificationRouter } from "./src/routes/gamification";
 import { notificationsRouter } from "./src/routes/notifications";
 import { analyticsRouter } from "./src/routes/analytics";
+import { appConfig, getJwtSecret, isProduction } from "./src/config";
+import { storageProvider } from "./src/services/storage";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "phk-stem-lab-super-secret-key-2026";
+const JWT_SECRET = getJwtSecret();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = appConfig.port;
+  const fs = await import("fs/promises");
+  await fs.mkdir(appConfig.storageRoot, { recursive: true });
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: appConfig.frontendUrl || (isProduction ? false : true),
+      allowedHeaders: ["Content-Type", "Authorization"],
+    }),
+  );
   app.use(express.json());
 
   app.use(
@@ -66,6 +75,22 @@ async function startServer() {
   app.use("/api/gamification", gamificationRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/analytics", analyticsRouter);
+
+  app.get("/health", async (_req, res) => {
+    let database = "ok";
+    try {
+      await db.select().from(roles).limit(1);
+    } catch {
+      database = "error";
+    }
+    const storage = await storageProvider.exists("");
+    res.status(database === "ok" && storage ? 200 : 503).json({
+      status: database === "ok" && storage ? "ok" : "degraded",
+      database,
+      storage: storage ? "ok" : "error",
+      ai: process.env.GEMINI_API_KEY ? "configured" : "not_configured",
+    });
+  });
 
   // Auth: Login
   app.post("/api/auth/login", async (req, res) => {
@@ -214,6 +239,19 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  app.use(
+    (
+      error: any,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      const errorId = randomUUID();
+      console.error(`[${errorId}]`, error);
+      res.status(500).json({ error: "Internal server error", errorId });
+    },
+  );
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running on port ${PORT}`);

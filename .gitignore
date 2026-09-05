@@ -6,3 +6,14 @@ coverage/
 *.log
 .env*
 !.env.example
+local.db
+*.db
+*.db-wal
+*.db-shm
+uploads/
+temp/
+secrets/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lock

@@ -1,27 +1,36 @@
-import express from 'express';
-import { db } from '../db';
-import { eq, sql, inArray } from 'drizzle-orm';
-import { users, courses, learnerProfiles, conceptMastery, progress, teacherAiConversations, teacherAiMessages } from '../db/schema';
-import { GeminiProvider } from '../services/ai/GeminiProvider';
-import { AITaskType } from '../services/ai/ModelRouter';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
+import express from "express";
+import { db } from "../db";
+import { eq, sql, inArray } from "drizzle-orm";
+import {
+  users,
+  courses,
+  learnerProfiles,
+  conceptMastery,
+  progress,
+  teacherAiConversations,
+  teacherAiMessages,
+} from "../db/schema";
+import { GeminiProvider } from "../services/ai/GeminiProvider";
+import { AITaskType } from "../services/ai/ModelRouter";
+import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
+import { getJwtSecret } from "../config";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'phk-stem-lab-super-secret-key-2026';
+const JWT_SECRET = getJwtSecret();
 
 const authMiddleware = (req: any, res: any, next: any) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No token' });
+  if (!authHeader) return res.status(401).json({ error: "No token" });
   try {
-    const decoded: any = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
-    if (decoded.role !== 'TEACHER') {
-        return res.status(403).json({ error: 'Forbidden. Teacher only.' });
+    const decoded: any = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
+    if (decoded.role !== "TEACHER") {
+      return res.status(403).json({ error: "Forbidden. Teacher only." });
     }
     req.user = decoded;
     next();
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(401).json({ error: "Invalid token" });
   }
 };
 
@@ -29,31 +38,32 @@ router.use(authMiddleware);
 
 // Helper tools for the AI to query actual database state
 const teacherTools = {
-    async getClassMastery(teacherId: string) {
-        // Use real Class enrollments for analytics
-        const studentProfiles = await db.select().from(learnerProfiles);
-        const masteries = await db.select().from(conceptMastery);
-        
-        // Aggregate weak concepts
-        const weakConceptsCount: Record<string, number> = {};
-        for (const m of masteries) {
-            if (m.masteryScore < 60) {
-                weakConceptsCount[m.conceptId] = (weakConceptsCount[m.conceptId] || 0) + 1;
-            }
-        }
-        
-        return {
-            totalStudents: studentProfiles.length,
-            weakConceptsSummary: weakConceptsCount
-        };
-    },
-    async getStudentAggregate(teacherId: string) {
-        const studentProfiles = await db.select().from(learnerProfiles);
-        return studentProfiles;
+  async getClassMastery(teacherId: string) {
+    // Use real Class enrollments for analytics
+    const studentProfiles = await db.select().from(learnerProfiles);
+    const masteries = await db.select().from(conceptMastery);
+
+    // Aggregate weak concepts
+    const weakConceptsCount: Record<string, number> = {};
+    for (const m of masteries) {
+      if (m.masteryScore < 60) {
+        weakConceptsCount[m.conceptId] =
+          (weakConceptsCount[m.conceptId] || 0) + 1;
+      }
     }
+
+    return {
+      totalStudents: studentProfiles.length,
+      weakConceptsSummary: weakConceptsCount,
+    };
+  },
+  async getStudentAggregate(teacherId: string) {
+    const studentProfiles = await db.select().from(learnerProfiles);
+    return studentProfiles;
+  },
 };
 
-router.post('/chat', async (req: any, res) => {
+router.post("/chat", async (req: any, res) => {
   try {
     const { message } = req.body;
     const teacherId = req.user.userId;
@@ -73,24 +83,24 @@ Nhiệm vụ:
 
     const aiProvider = new GeminiProvider();
     const response: any = await aiProvider.generateStructuredOutput(
-        message,
-        {
-            type: "OBJECT",
-            properties: {
-                summary: { type: "STRING" },
-                insights: { type: "ARRAY", items: { type: "STRING" } },
-                recommendedActions: { type: "ARRAY", items: { type: "STRING" } }
-            },
-            required: ["summary", "insights", "recommendedActions"]
+      message,
+      {
+        type: "OBJECT",
+        properties: {
+          summary: { type: "STRING" },
+          insights: { type: "ARRAY", items: { type: "STRING" } },
+          recommendedActions: { type: "ARRAY", items: { type: "STRING" } },
         },
-        AITaskType.COMPLEX_REASONING,
-        systemPrompt
+        required: ["summary", "insights", "recommendedActions"],
+      },
+      AITaskType.COMPLEX_REASONING,
+      systemPrompt,
     );
 
     res.json(response);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Teacher AI failed' });
+    res.status(500).json({ error: "Teacher AI failed" });
   }
 });
 

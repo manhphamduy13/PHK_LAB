@@ -1,13 +1,17 @@
+import "dotenv/config";
 import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
+import { drizzle as drizzlePostgres } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
-import fs from "fs";
+const databaseUrl = process.env.DATABASE_URL || "file:local.db";
 
-// Create local sqlite database file if it doesn't exist
-const dbFile = "local.db";
-
-const client = createClient({
-  url: `file:${dbFile}`,
-});
-
-export const db = drizzle(client, { schema });
+export const db: any = databaseUrl.startsWith("postgres")
+  ? drizzlePostgres(
+      new Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false },
+      }),
+      { schema },
+    )
+  : drizzleLibsql(createClient({ url: databaseUrl }), { schema });
