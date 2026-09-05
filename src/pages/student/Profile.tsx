@@ -2,11 +2,16 @@ import { useStudentStore } from '../../store/studentStore';
 import { useAuthStore } from '../../store/authStore';
 import { Settings, LogOut, BookOpen, Clock, Target, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export default function Profile() {
   const { user, logout } = useAuthStore();
-  const { xp, level, streak, lessonsCompleted } = useStudentStore();
+  const { xp, level, streak, lessonsCompleted, fetchProfile } = useStudentStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleLogout = () => {
     logout();

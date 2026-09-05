@@ -17,13 +17,16 @@ import CourseExplorer from './pages/student/CourseExplorer';
 import CourseDetails from './pages/student/CourseDetails';
 import LessonPlayer from './pages/student/LessonPlayer';
 import Exercises from './pages/student/Exercises';
+import Assignments from './pages/student/Assignments';
 import Flashcards from './pages/student/Flashcards';
 import AITutor from './pages/student/AITutor';
+import ExamPrep from './pages/student/ExamPrep';
 import Achievements from './pages/student/Achievements';
 import Profile from './pages/student/Profile';
 import AdminDashboard from './pages/admin/Dashboard';
 import LessonBuilder from './pages/admin/LessonBuilder';
 import CourseManagement from './pages/admin/CourseManagement';
+import ClassManagement from './pages/admin/ClassManagement';
 import ExerciseBank from './pages/admin/ExerciseBank';
 import MediaLibrary from './pages/admin/MediaLibrary';
 import UserManagement from './pages/admin/UserManagement';
@@ -33,6 +36,8 @@ import QuestionBank from './pages/admin/QuestionBank';
 import ExperimentLibrary from './pages/admin/ExperimentLibrary';
 import AIPipelineDashboard from './pages/admin/AIPipelineDashboard';
 import AIPipelineReview from './pages/admin/AIPipelineReview';
+import TeacherAIAssistant from './pages/admin/TeacherAIAssistant';
+import EarlyWarning from './pages/admin/EarlyWarning';
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -60,11 +65,13 @@ export default function App() {
             <Route path="/student/courses/:id" element={<CourseDetails />} />
             <Route path="/student/lessons/:id" element={<LessonPlayer />} />
             <Route path="/student/exercises" element={<Exercises />} />
+            <Route path="/student/assignments" element={<Assignments />} />
             <Route path="/student/flashcards" element={<Flashcards />} />
             <Route path="/student/profile" element={<Profile />} />
             <Route path="/student/progress" element={<PlaceholderPage title="Tiến độ" />} />
             <Route path="/student/achievements" element={<Achievements />} />
             <Route path="/student/ai-tutor" element={<AITutor />} />
+            <Route path="/student/exam-prep" element={<ExamPrep />} />
           </Route>
         </Route>
 
@@ -73,12 +80,15 @@ export default function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/courses" element={<CourseManagement />} />
+            <Route path="/admin/classes" element={<ClassManagement />} />
             <Route path="/admin/lessons/:id/editor" element={<LessonBuilder />} />
             <Route path="/admin/exercises" element={<ExerciseBank />} />
             <Route path="/admin/questions" element={<QuestionBank />} />
             <Route path="/admin/media" element={<MediaLibrary />} />
             <Route path="/admin/ai-content" element={<AIPipelineDashboard />} />
             <Route path="/admin/ai-content/:id/review" element={<AIPipelineReview />} />
+            <Route path="/admin/teacher-ai" element={<TeacherAIAssistant />} />
+            <Route path="/admin/early-warning" element={<EarlyWarning />} />
             <Route path="/admin/experiments" element={<ExperimentLibrary />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/audit-log" element={<AuditLog />} />

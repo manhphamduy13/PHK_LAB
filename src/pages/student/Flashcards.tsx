@@ -1,24 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RotateCcw, Check, X, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const CARDS = [
-  { id: 1, front: 'Gia tốc (a)', back: 'Đại lượng vectơ đặc trưng cho sự thay đổi nhanh hay chậm của vận tốc. Công thức: a = Δv / Δt' },
-  { id: 2, front: 'Định luật I Newton', back: 'Nếu một vật không chịu tác dụng của lực nào hoặc chịu tác dụng của các lực có hợp lực bằng 0, thì vật đang đứng yên sẽ tiếp tục đứng yên, đang chuyển động sẽ tiếp tục chuyển động thẳng đều.' },
-  { id: 3, front: 'Trọng lực (P)', back: 'Lực hút của Trái Đất tác dụng lên vật. Công thức: P = mg' }
-];
+import { useAuthStore } from '../../store/authStore';
 
 export default function Flashcards() {
+  const [cards, setCards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [stats, setStats] = useState({ know: 0, review: 0 });
+  const { token } = useAuthStore();
 
-  const card = CARDS[currentIndex];
-  const isComplete = currentIndex >= CARDS.length;
+  useEffect(() => {
+    async function loadCards() {
+      try {
+        const res = await fetch('/api/learning/flashcards', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCards(data.flashcards);
+        }
+      } catch (err) {
+        console.error("Failed to load flashcards", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (token) loadCards();
+  }, [token]);
 
-  const handleNext = (status: 'know' | 'review') => {
+  const card = cards[currentIndex];
+  const isComplete = currentIndex >= cards.length && cards.length > 0;
+
+  const handleNext = async (status: 'know' | 'review') => {
     setStats(prev => ({ ...prev, [status]: prev[status] + 1 }));
     setIsFlipped(false);
+    
+    // Call backend to update spaced repetition ease and interval
+    try {
+      await fetch('/api/learning/flashcards/review', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          flashcardId: card.id,
+          ease: status === 'know' ? 3 : 1 // 3=Good, 1=Again
+        })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
     }, 150);
@@ -30,6 +65,25 @@ export default function Flashcards() {
     setIsFlipped(false);
   };
 
+  if (loading) {
+    return <div className="text-center p-8 text-slate-500 font-bold">Đang tải thẻ học...</div>;
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto text-center p-8">
+        <Link to="/student" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-slate-900 transition-colors mb-6">
+          <ArrowLeft className="w-5 h-5" />
+          Quay lại
+        </Link>
+        <div className="bg-white rounded-3xl p-12 text-center border-2 border-b-4 border-slate-200">
+           <h2 className="text-2xl font-black text-slate-900 mb-2">Chưa có flashcard nào!</h2>
+           <p className="text-slate-500">Bạn cần hoàn thành thêm bài học để mở khóa thẻ ghi nhớ.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto animate-in fade-in duration-500">
       <Link to="/student" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-slate-900 transition-colors mb-6">
@@ -39,13 +93,13 @@ export default function Flashcards() {
 
       <div className="text-center mb-8">
         <h1 className="text-3xl font-black text-slate-900">Ôn tập Flashcards</h1>
-        <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-sm">Vật Lý 10 - Chương 1 & 2</p>
+        <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-sm">Thẻ ghi nhớ của bạn</p>
       </div>
 
       {!isComplete ? (
         <div className="space-y-8">
           <div className="flex justify-between text-sm font-bold text-slate-400 px-4">
-            <span>Tiến độ: {currentIndex + 1} / {CARDS.length}</span>
+            <span>Tiến độ: {currentIndex + 1} / {cards.length}</span>
             <span>Đã thuộc: <span className="text-emerald-500">{stats.know}</span></span>
           </div>
 
@@ -92,13 +146,12 @@ export default function Flashcards() {
             <Check className="w-12 h-12" />
           </div>
           <h2 className="text-3xl font-black text-slate-900 mb-2">Hoàn thành bộ thẻ!</h2>
-          <p className="text-slate-500 font-medium mb-8">Bạn đã nhớ được {stats.know} trên tổng số {CARDS.length} thuật ngữ.</p>
-          <button 
-            onClick={handleReset}
-            className="px-8 py-4 bg-blue-500 text-white font-black rounded-2xl border-b-4 border-blue-700 active:border-b-0 active:translate-y-1 transition-all"
+          <p className="text-slate-500 font-medium mb-8">Bạn đã nhớ được {stats.know} trên tổng số {cards.length} thuật ngữ.</p>
+          <Link to="/student"
+            className="px-8 py-4 bg-blue-500 text-white font-black rounded-2xl border-b-4 border-blue-700 active:border-b-0 active:translate-y-1 transition-all inline-block"
           >
-            Học lại từ đầu
-          </button>
+            Quay lại tổng quan
+          </Link>
         </div>
       )}
     </div>

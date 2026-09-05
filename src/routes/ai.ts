@@ -4,12 +4,18 @@ import { db } from '../db';
 import { documents, aiJobs, lessons } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { PipelineManager } from '../services/ai/PipelineManager';
+import { authMiddleware, requireRole } from '../middleware/auth';
 
 const router = express.Router();
 
-// Memory storage for uploads (in a real app, use S3 or disk storage)
+router.use(authMiddleware);
+router.use(requireRole(['SUPER_ADMIN', 'TEACHER']));
+
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 router.post('/upload-pdf', upload.single('file'), async (req, res) => {
   try {
@@ -17,17 +23,17 @@ router.post('/upload-pdf', upload.single('file'), async (req, res) => {
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Only PDF files are allowed' });
+    }
 
-    // In a real application, save to disk or GCS/S3.
-    // For this prototype, we'll store a dummy path and use the buffer directly in the pipeline,
-    // or we could save it to disk. Let's just save to a temp folder to be safe.
     const fs = await import('fs/promises');
     const path = await import('path');
     
     const uploadsDir = path.join(process.cwd(), 'uploads');
     await fs.mkdir(uploadsDir, { recursive: true });
     
-    const filename = `${uuidv4()}-${file.originalname}`;
+    const filename = `${uuidv4()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = path.join(uploadsDir, filename);
     await fs.writeFile(filePath, file.buffer);
 
@@ -42,7 +48,6 @@ router.post('/upload-pdf', upload.single('file'), async (req, res) => {
       createdAt: new Date(),
     });
 
-    // Create the initial AI Job
     const jobId = uuidv4();
     await db.insert(aiJobs).values({
       id: jobId,
@@ -53,7 +58,6 @@ router.post('/upload-pdf', upload.single('file'), async (req, res) => {
       updatedAt: new Date(),
     });
 
-    // Start pipeline in background
     PipelineManager.startPipeline(jobId, docId, filePath).catch(console.error);
 
     res.json({ documentId: docId, jobId: jobId, message: 'Upload successful, processing started.' });

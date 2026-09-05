@@ -12,7 +12,8 @@ import {
   HelpCircle,
   List,
   User,
-  Sparkles
+  Sparkles,
+  GraduationCap
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -28,6 +29,7 @@ export function AdminLayout() {
   const navItems = [
     { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
     { icon: BookOpen, label: 'Khóa học', path: '/admin/courses' },
+    { icon: GraduationCap, label: 'Lớp học', path: '/admin/classes' },
     { icon: Target, label: 'Bài tập', path: '/admin/exercises' },
     { icon: HelpCircle, label: 'Câu hỏi', path: '/admin/questions' },
     { icon: FolderOpen, label: 'Học liệu', path: '/admin/media' },

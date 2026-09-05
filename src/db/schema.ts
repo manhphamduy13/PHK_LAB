@@ -48,16 +48,6 @@ export const lessons = sqliteTable('lessons', {
   content: text('content'),
   order: integer('order').notNull(),
   status: text('status').default('DRAFT'), // DRAFT, AI_GENERATED, NEEDS_REVIEW, REVIEWED, PUBLISHED, ARCHIVED
-  version: integer('version').default(1),
-  sourceDocumentId: text('source_document_id'), // optional ref to documents.id
-});
-
-export const lessonSections = sqliteTable('lesson_sections', {
-  id: text('id').primaryKey(),
-  lessonId: text('lesson_id').notNull().references(() => lessons.id),
-  type: text('type').notNull(), // text, video, image, interactive
-  content: text('content').notNull(),
-  order: integer('order').notNull(),
 });
 
 export const documents = sqliteTable('documents', {
@@ -66,18 +56,16 @@ export const documents = sqliteTable('documents', {
   originalName: text('original_name').notNull(),
   mimeType: text('mime_type').notNull(),
   size: integer('size').notNull(),
-  hash: text('hash'),
   path: text('path').notNull(),
-  uploadedBy: text('uploaded_by').references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
 export const aiJobs = sqliteTable('ai_jobs', {
   id: text('id').primaryKey(),
-  documentId: text('document_id').notNull().references(() => documents.id),
-  model: text('model'),
-  task: text('task'), // e.g. "ANALYZE", "EXTRACT", "GENERATE_LESSON", "FULL_PIPELINE"
-  status: text('status').notNull(), // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  documentId: text('document_id').references(() => documents.id),
+  lessonId: text('lesson_id').references(() => lessons.id),
+  task: text('task').notNull(), // FULL_PIPELINE, GENERATE_LESSON, GENERATE_EXERCISES, DETECT_EXPERIMENTS
+  status: text('status').notNull(), // PENDING, PROCESSING, COMPLETED, FAILED
   inputTokens: integer('input_tokens'),
   outputTokens: integer('output_tokens'),
   processingTimeMs: integer('processing_time_ms'),
@@ -218,3 +206,126 @@ export const recommendations = sqliteTable('recommendations', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+
+// --- PHASE 5 EXTENSIONS ---
+
+export const teacherAiConversations = sqliteTable('teacher_ai_conversations', {
+  id: text('id').primaryKey(),
+  teacherId: text('teacher_id').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const teacherAiMessages = sqliteTable('teacher_ai_messages', {
+  id: text('id').primaryKey(),
+  conversationId: text('conversation_id').notNull().references(() => teacherAiConversations.id),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  metadata: text('metadata'),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
+});
+
+export const examPlans = sqliteTable('exam_plans', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => users.id),
+  examDate: integer('exam_date', { mode: 'timestamp' }).notNull(),
+  subject: text('subject').notNull(),
+  targetScore: integer('target_score'),
+  readinessScore: integer('readiness_score').default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const mockExams = sqliteTable('mock_exams', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => users.id),
+  examPlanId: text('exam_plan_id').references(() => examPlans.id),
+  score: integer('score'),
+  status: text('status').default('PENDING'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const earlyWarningSignals = sqliteTable('early_warning_signals', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => users.id),
+  riskLevel: text('risk_level').notNull(), // LOW, MEDIUM, HIGH, CRITICAL
+  riskScore: integer('risk_score').notNull(),
+  reasons: text('reasons').notNull(), // JSON array
+  suggestedAction: text('suggested_action'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const interventions = sqliteTable('interventions', {
+  id: text('id').primaryKey(),
+  teacherId: text('teacher_id').notNull().references(() => users.id),
+  studentId: text('student_id').notNull().references(() => users.id),
+  signalId: text('signal_id').references(() => earlyWarningSignals.id),
+  type: text('type').notNull(), // LESSON, EXERCISE, SIMULATION, MESSAGE
+  resourceId: text('resource_id'),
+  status: text('status').default('ACTIVE'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+
+// --- PHASE 6 EXTENSIONS ---
+
+export const classes = sqliteTable('classes', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  teacherId: text('teacher_id').notNull().references(() => users.id),
+  gradeId: text('grade_id').references(() => grades.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const enrollments = sqliteTable('enrollments', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => users.id),
+  classId: text('class_id').notNull().references(() => classes.id),
+  enrolledAt: integer('enrolled_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const xpTransactions = sqliteTable('xp_transactions', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => users.id),
+  action: text('action').notNull(),
+  sourceType: text('source_type'), // LESSON, QUIZ, SIMULATION
+  sourceId: text('source_id'),
+  xp: integer('xp').notNull(),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
+});
+
+export const assignments = sqliteTable('assignments', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  teacherId: text('teacher_id').notNull().references(() => users.id),
+  classId: text('class_id').notNull().references(() => classes.id),
+  courseId: text('course_id').references(() => courses.id),
+  lessonId: text('lesson_id').references(() => lessons.id),
+  type: text('type').notNull(), // LESSON, QUIZ, EXERCISE, REVIEW
+  startDate: integer('start_date', { mode: 'timestamp' }).notNull(),
+  dueDate: integer('due_date', { mode: 'timestamp' }).notNull(),
+  status: text('status').default('DRAFT'), // DRAFT, PUBLISHED, CLOSED
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const studentAssignments = sqliteTable('student_assignments', {
+  id: text('id').primaryKey(),
+  assignmentId: text('assignment_id').notNull().references(() => assignments.id),
+  studentId: text('student_id').notNull().references(() => users.id),
+  status: text('status').default('NOT_STARTED'), // NOT_STARTED, IN_PROGRESS, SUBMITTED, LATE, MISSING
+  score: integer('score'),
+  startedAt: integer('started_at', { mode: 'timestamp' }),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+});
+
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  resourceType: text('resource_type'),
+  resourceId: text('resource_id'),
+  readAt: integer('read_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});

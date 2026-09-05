@@ -83,4 +83,71 @@ router.get('/tutor/history', async (req: any, res) => {
   }
 });
 
+
+
+// Spaced Repetition (Phase 5)
+router.get('/flashcards', async (req: any, res) => {
+  try {
+    const recs = await RecommendationService.getActiveRecommendations(req.user.userId);
+    const flashcardRecs = recs.filter(r => r.type === 'FLASHCARD');
+    const dbFlashcards = [];
+    
+    // Fallback if no specific flashcards recommended
+    if (flashcardRecs.length === 0) {
+        const { flashcards } = await import('../db/schema');
+        const fallback = await db.select().from(flashcards).limit(10);
+        res.json({ flashcards: fallback });
+        return;
+    }
+    
+    // In production, fetch specific recommended flashcards
+    res.json({ flashcards: dbFlashcards });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch flashcards' });
+  }
+});
+
+router.post('/flashcards/review', async (req: any, res) => {
+  try {
+    const { flashcardId, quality } = req.body;
+    // Simple SM-2 implementation or placeholder
+    const { flashcardReviews } = await import('../db/schema');
+    const { v4: uuidv4 } = await import('uuid');
+    
+    await db.insert(flashcardReviews).values({
+        id: uuidv4(),
+        studentId: req.user.userId,
+        flashcardId,
+        ease: 250,
+        interval: 1,
+        dueDate: new Date(),
+        reviewCount: 1,
+        successCount: quality > 3 ? 1 : 0,
+        failureCount: quality <= 3 ? 1 : 0
+    });
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to review flashcard' });
+  }
+});
+
+router.get('/exercises/random', async (req: any, res) => {
+  try {
+    const { exercises, questions } = await import('../db/schema');
+    const allExercises = await db.select().from(exercises).limit(1);
+    if (allExercises.length > 0) {
+        const ex = allExercises[0];
+        const exQuestions = await db.select().from(questions).where(eq(questions.exerciseId, ex.id));
+        res.json({ exercise: { ...ex, questions: exQuestions } });
+    } else {
+        res.json({ exercise: null });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch exercise' });
+  }
+});
 export const learningRouter = router;

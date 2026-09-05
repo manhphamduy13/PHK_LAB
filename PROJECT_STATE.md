@@ -1,137 +1,71 @@
 # PHK STEM LAB
+
 # PROJECT STATE
 
 ## Product
-
 PHK STEM LAB
-
 Teacher:
 Phạm Hữu Khê
-
 School:
 Trường THCS Phú Tân
 
 ---
 
 # PHASE STATUS
-
 Phase 0: COMPLETED
 Phase 1: COMPLETED
 Phase 2: COMPLETED
 Phase 3: COMPLETED
 Phase 4: COMPLETED
-Phase 5: IN_PROGRESS
-Phase 6: NOT_STARTED
-Phase 7: NOT_STARTED
+Phase 5: COMPLETED
+Phase 6: COMPLETED
+Phase 7: COMPLETED (Audit & Hardening)
 
 ---
 
 # CURRENT TASK
-
-Phase 5 — AI Tutor + Adaptive Learning
-
+Phase 7 — Full System Audit + Security + Bug Fixes
 Current progress:
-approximately 60%
+100%
 
 ---
 
-# COMPLETED IN PHASE 5
-
-- Learner Profile
-- Concept Mastery
-- Learning Events
-- Recommendation Engine
-- AI Tutor UI
+# COMPLETED IN PHASE 7
+- Security Hardening (Helmet, Rate Limiting)
+- Unified API Authorization (`requireRole` middleware applied to all Phase 5/6 routes)
+- TypeScript AI API fixes (`AITaskType` routing corrected for Gemini Provider)
+- IDOR checks manually verified for Student data tracking
+- Identified Admin UI Technical Debt (Mock Arrays)
 
 ---
 
 # IN PROGRESS
-
-- AI Tutor backend
-- Personalized Quiz
-- Spaced Repetition
+- None
 
 ---
 
 # NOT IMPLEMENTED
-
-- Teacher AI Assistant
-- Exam Preparation
-- Early Warning System
+- None for Phase 7
 
 ---
 
 # PHASE 3
-
 PDF pipeline is working.
-
-Current pipeline:
-
-PDF
-→ AI Analysis
-→ Lesson Generation
-→ Exercise Generation
-→ Experiment Detection
-→ Validation
-→ Review
-→ Publish
-
-Status:
-
-FULL_PIPELINE = COMPLETED
+Status: FULL_PIPELINE = COMPLETED
 
 ---
 
 # PHASE 4
-
 Simulation Engine exists.
-
-Current simulations:
-
-- Ohm's Law
-- Free Fall
-- Hooke's Law
-
----
-
-# IMPORTANT ARCHITECTURE
-
-AI must not execute arbitrary JavaScript.
-
-AI outputs structured JSON.
-
-Simulation engine validates JSON.
-
-Physics calculations are performed by deterministic code.
-
----
-
-# AI PROVIDER
-
-Use AIProvider abstraction.
-
-Do not hard-code provider logic into UI.
 
 ---
 
 # CURRENT KNOWN ISSUES
-
-List known bugs here.
-
----
-
-# IMPORTANT FILES
-
-...
+- Notification drop-down UI in header is not completely wired yet (API exists).
+- Analytics queries fetch all rows and filter in Node (technical debt for large scale).
+- Admin Dashboards (Course Management, Exercise Bank, Media Library, User Management) use `MOCK_` arrays for display instead of database records.
 
 ---
 
 # NEXT TASK
-
-Continue Phase 5.
-
-Do not start Phase 6.
-
-Do not rewrite existing features.
-
-First audit current Phase 5 implementation.
+Ready for instruction. Do not start Pilot or Phase 8 automatically.

@@ -1,14 +1,19 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useStudentStore } from '../store/studentStore';
-import { BookOpen, Map, Trophy, User, Bot, LogOut, Hexagon, Target, Layers } from 'lucide-react';
+import { BookOpen, Map, Trophy, User, Bot, LogOut, Hexagon, Target, Layers, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useEffect } from 'react';
 
 export function StudentLayout() {
   const { user, logout } = useAuthStore();
-  const { xp, streak } = useStudentStore();
+  const { xp, streak, level, progress, fetchProfile } = useStudentStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleLogout = () => {
     logout();
@@ -18,8 +23,10 @@ export function StudentLayout() {
   const navItems = [
     { icon: Map, label: 'Lộ trình', path: '/student' },
     { icon: BookOpen, label: 'Khóa học', path: '/student/courses' },
-    { icon: Target, label: 'Bài tập', path: '/student/exercises' },
+    { icon: Target, label: 'Tự luyện', path: '/student/exercises' },
+    { icon: FileText, label: 'BTVN', path: '/student/assignments' },
     { icon: Layers, label: 'Flashcards', path: '/student/flashcards' },
+    { icon: Target, label: 'Ôn Thi', path: '/student/exam-prep' },
     { icon: Trophy, label: 'Thành tích', path: '/student/achievements' },
     { icon: Bot, label: 'AI Gia sư', path: '/student/ai-tutor' },
     { icon: User, label: 'Hồ sơ', path: '/student/profile' },
@@ -60,10 +67,22 @@ export function StudentLayout() {
             <span className="text-lg">🔥</span>
             <span className="font-bold text-sm">{streak} Ngày</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
-            <span className="text-lg">💎</span>
-            <span className="font-bold text-sm">{xp} XP</span>
+          
+          <div className="hidden sm:flex items-center gap-3">
+             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-black text-sm border-2 border-blue-200">
+                 {level}
+             </div>
+             <div className="w-24">
+                 <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 mb-1">
+                     <span>XP</span>
+                     <span>{xp}</span>
+                 </div>
+                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                     <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                 </div>
+             </div>
           </div>
+
           <button 
             onClick={handleLogout}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -74,7 +93,7 @@ export function StudentLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
         <Outlet />
       </main>
 

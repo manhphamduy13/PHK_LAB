@@ -36,20 +36,20 @@ export class TutorService {
     // 3. Build Prompt
     const masteries = await db.select().from(conceptMastery).where(eq(conceptMastery.studentId, studentId));
     const weakContext = masteries.filter(m => m.masteryScore < 60).map(m => m.conceptId).join(', ');
+    const strongContext = masteries.filter(m => m.masteryScore >= 80).map(m => m.conceptId).join(', ');
 
     const systemInstruction = `Bạn là Khê AI Tutor - một gia sư Vật lý và STEM tận tâm, thông minh.
-Nguyên tắc:
-1. Dạy theo phương pháp Socratic (hỏi gợi mở, không đưa đáp án ngay).
-2. Khi học sinh bế tắc, đưa ra gợi ý từng bước (Hint).
-3. Nếu học sinh hỏi về Simulation (thí nghiệm), sử dụng Context được cung cấp.
-4. Ngắn gọn, thân thiện, dùng ngôn ngữ dễ hiểu.
-5. Học sinh này đang yếu các phần: ${weakContext || 'Chưa có dữ liệu'}.
-6. Trả về định dạng JSON nếu có thể (nhưng @google/genai structured output is best). 
-Ở đây ta sẽ trả text bình thường để dễ hiển thị trong chat, định dạng Markdown.`;
+Nguyên tắc Socratic & Hint System:
+1. KHÔNG BAO GIỜ đưa ra đáp án trực tiếp ngay lập tức. Luôn đặt câu hỏi ngược lại để dẫn dắt học sinh tự tìm ra câu trả lời (Socratic Method).
+2. Khi học sinh bế tắc, đưa ra gợi ý từng bước (Hint) qua thuộc tính "hint" trong JSON để giao diện có thể hiển thị dưới dạng trợ giúp phụ.
+3. Nếu học sinh hỏi về Simulation (thí nghiệm), giải thích dựa trên Context cấu hình mô phỏng.
+4. Ngắn gọn, thân thiện, dùng ngôn ngữ dễ hiểu. Khen ngợi nếu học sinh có ý đúng.
+5. Học sinh này đang yếu các khái niệm: [${weakContext || 'Chưa có dữ liệu'}]. Hãy đặc biệt chú ý và giảng giải kỹ hơn khi đụng tới các khái niệm này.
+6. Học sinh đã vững các khái niệm: [${strongContext || 'Chưa có dữ liệu'}]. Có thể dùng các khái niệm này làm ví dụ so sánh.`;
 
-    const prompt = `Context hiện tại của học sinh: ${JSON.stringify(context)}
+    const prompt = `Context (Thí nghiệm/Bài học) hiện tại: ${JSON.stringify(context || {})}
 Câu hỏi của học sinh: ${message}
-Hãy trả lời một cách gợi mở.`;
+Phân tích và trả lời theo phương pháp Socratic. Nếu cần, cung cấp một hint (gợi ý) ngắn gọn.`;
 
     // 4. Generate Response using reasoning model if needed, but let's use fast for chat
     const responseText: any = await aiProvider.generateStructuredOutput(
@@ -57,9 +57,10 @@ Hãy trả lời một cách gợi mở.`;
        {
          type: "OBJECT",
          properties: {
-           message: { type: "STRING" },
-           mode: { type: "STRING" },
-           suggestedActions: { type: "ARRAY", items: { type: "STRING" } }
+           message: { type: "STRING", description: "Câu trả lời chính của gia sư theo phương pháp Socratic (dạng Markdown)." },
+           hint: { type: "STRING", description: "Một gợi ý ngắn gọn (1 câu) nếu học sinh cần thêm trợ giúp để trả lời câu hỏi của gia sư." },
+           mode: { type: "STRING", description: "Chế độ hiện tại, ví dụ: 'SOCRATIC', 'EXPLANATION', 'ENCOURAGEMENT'" },
+           suggestedActions: { type: "ARRAY", items: { type: "STRING" }, description: "Các hành động gợi ý cho học sinh click vào." }
          },
          required: ["message", "mode"]
        },
@@ -74,13 +75,18 @@ Hãy trả lời một cách gợi mở.`;
       conversationId: convId,
       role: 'assistant',
       content: responseText.message,
-      metadata: JSON.stringify({ mode: responseText.mode, actions: responseText.suggestedActions }),
+      metadata: JSON.stringify({ 
+        mode: responseText.mode, 
+        hint: responseText.hint,
+        actions: responseText.suggestedActions 
+      }),
       timestamp: new Date()
     });
 
     return {
       id: aiMessageId,
       content: responseText.message,
+      hint: responseText.hint,
       mode: responseText.mode,
       suggestedActions: responseText.suggestedActions
     };
@@ -97,3 +103,4 @@ Hãy trả lời một cách gợi mở.`;
     return messages;
   }
 }
+

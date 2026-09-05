@@ -71,7 +71,7 @@ export class PipelineManager {
         content: JSON.stringify(structuredData), // store raw data as content for now
         order: 1,
         status: 'NEEDS_REVIEW',
-        sourceDocumentId: documentId,
+        
       });
 
       await this.updateJobStatus(jobId, 'COMPLETED', JSON.stringify({ lessonId, structuredData }));

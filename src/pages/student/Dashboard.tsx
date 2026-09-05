@@ -2,10 +2,15 @@ import { useAuthStore } from '../../store/authStore';
 import { useStudentStore } from '../../store/studentStore';
 import { Link } from 'react-router-dom';
 import { Play, Trophy, Star, BookOpen, Clock, Flame, Target } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
-  const { xp, level, streak, lessonsCompleted, weeklyGoal } = useStudentStore();
+  const { xp, level, streak, lessonsCompleted, weeklyGoal, fetchProfile } = useStudentStore();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
