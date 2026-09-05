@@ -1,0 +1,6 @@
+{
+  "name": "PHK STEM LAB",
+  "description": "Learn. Explore. Experiment. - Nền tảng học thuật STEM",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
