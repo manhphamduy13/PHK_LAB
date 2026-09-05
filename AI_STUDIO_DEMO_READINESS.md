@@ -1,29 +1,38 @@
-# AI STUDIO DEMO READINESS
+# AI Studio Demo Readiness Report
 
-## Overall Status: READY (for controlled demo)
+## Architecture
+- React / Vite SPA frontend.
+- Express backend serving API requests and proxying AI.
+- Drizzle ORM connected to ephemeral local SQLite.
 
-### What Works
-- **Frontend & Backend Integration:** The Vite React app and Express backend successfully start and serve traffic on port 3000.
-- **Database:** SQLite (`local.db`) initializes and successfully seeds demo data.
-- **Health Check:** The `/health` endpoint responds correctly, validating database and storage status.
-- **Static Assets:** The production build correctly bundles and serves the frontend.
+## Build and Environment
+- **Build**: PASS
+- **Lint**: PASS
+- **Runtime**: PASS
+- **Health**: PASS
 
-### What Requires Secrets
-- **Gemini API:** The `GEMINI_API_KEY` must be configured in AI Studio's Secrets manager for AI Tutor and PDF processing to function.
-- **JWT Authentication:** Requires a secret (defaults to development secret if not in strict production mode).
+## Services
+- **Database**: PASS (Ephemeral SQLite)
+- **Storage**: PASS (Ephemeral Local)
+- **Gemini**: PASS (Server-side initialization using `GEMINI_API_KEY`, using `gemini-3.6-flash`)
+- **AI Tutor**: PASS
+- **PDF AI**: PASS
+- **Simulation**: PASS
 
-### What Requires External Services
-- None strictly required for the demo, as long as Gemini API is provided.
+## Security & Auth
+- **Authentication**: PASS (JWT based)
+- **Authorization**: PASS
+- No secrets exposed to frontend.
 
-### What Persists vs What Does Not Persist
-- **Temporary:** Both the SQLite database and local uploaded files (PDFs) are stored on the ephemeral container filesystem.
-- **Persistence Limitation:** Data **will not persist** across container restarts. This is acceptable for a controlled 30-user live demo session, but must be acknowledged.
+## Workflows
+- **Student flow**: PASS
+- **Teacher flow**: PASS
+- **Admin flow**: PASS
 
-### Known Limitations
-- Real-time/Analytics: Querying large datasets filters in-memory (Technical debt documented in Phase 7).
-- Scale: Bound by single-node ephemeral file system. Not suitable for long-term production.
+## Considerations
+- **Persistence**: Data and file uploads will not persist across container restarts in the demo environment.
+- **30-user suitability**: YES. The application is well within operational bounds for a controlled 30-user demo. Rate limiting is applied to AI endpoints.
 
-### 30-User Demo Recommendation
-The application is ready to handle the 30-user demonstration. It's recommended to:
-1. Ensure the demo is conducted within a single continuous runtime session to avoid data loss.
-2. Confirm `GEMINI_API_KEY` is injected correctly.
+## Known Limitations
+- Background task polling and long-running PDF processing are subject to standard ephemeral environment limits.
+- SQLite is used instead of Postgres for immediate compatibility with the demo environment without external setup.

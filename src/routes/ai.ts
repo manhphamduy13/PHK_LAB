@@ -149,4 +149,43 @@ router.post("/lessons/:id/publish", async (req: any, res) => {
   }
 });
 
+router.get("/documents", async (req, res) => {
+  try {
+    const { documents } = await import("../db/schema");
+    const docs = await db.select().from(documents);
+    res.json(docs);
+  } catch (error) {
+    console.error("Failed to fetch documents", error);
+    res.status(500).json({ error: "Failed to fetch documents" });
+  }
+});
+
+router.get("/documents/:id/download", async (req, res) => {
+  try {
+    const { documents } = await import("../db/schema");
+    const { eq } = await import("drizzle-orm");
+    const docs = await db.select().from(documents).where(eq(documents.id, req.params.id)).limit(1);
+    if (docs.length === 0) return res.status(404).json({ error: "Not found" });
+    const doc = docs[0];
+    const buffer = await storageProvider.download(doc.path);
+    res.setHeader('Content-Type', doc.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.originalName}"`);
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to download" });
+  }
+});
+
+router.delete("/documents/:id", async (req, res) => {
+  try {
+    const { documents } = await import("../db/schema");
+    const { eq } = await import("drizzle-orm");
+    await db.delete(documents).where(eq(documents.id, req.params.id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete document", error);
+    res.status(500).json({ error: "Failed to delete document" });
+  }
+});
+
 export const aiRouter = router;

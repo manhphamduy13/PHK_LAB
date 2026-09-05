@@ -28,20 +28,30 @@ export class GeminiProvider {
     }
     
     const model = ModelRouter.getModelForTask(taskType);
-    try {
-      const response = await this.ai.models.generateContent({
-        model: model,
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.7,
-        },
-      });
-      return response.text || "";
-    } catch (error) {
-      console.error(`Error in generateText with model ${model}:`, error);
-      throw error;
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model: model,
+          contents: prompt,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.7,
+          },
+        });
+        return response.text || "";
+      } catch (error: any) {
+        attempt++;
+        console.error(`Error in generateText with model ${model} (attempt ${attempt}/${maxRetries}):`, error.message || error);
+        if (attempt >= maxRetries || (error?.status !== "UNAVAILABLE" && error?.status !== "RESOURCE_EXHAUSTED" && !error?.message?.includes('503'))) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt))); // exponential backoff
+      }
     }
+    throw new Error(`Failed to generate text after ${maxRetries} attempts`);
   }
 
   async generateStructuredOutput<T>(
@@ -81,29 +91,36 @@ export class GeminiProvider {
     }
 
     const model = ModelRouter.getModelForTask(taskType);
-    try {
-      const response = await this.ai.models.generateContent({
-        model: model,
-        contents: promptOrContents,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-          systemInstruction: systemInstruction,
-          temperature: 0.2, // Low temperature for extraction
-        },
-      });
-      const text = response.text;
-      if (!text) {
-        throw new Error("Empty response from model");
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model: model,
+          contents: promptOrContents,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: schema,
+            systemInstruction: systemInstruction,
+            temperature: 0.2, // Low temperature for extraction
+          },
+        });
+        const text = response.text;
+        if (!text) {
+          throw new Error("Empty response from model");
+        }
+        return JSON.parse(text) as T;
+      } catch (error: any) {
+        attempt++;
+        console.error(`Error in generateStructuredOutput with model ${model} (attempt ${attempt}/${maxRetries}):`, error.message || error);
+        if (attempt >= maxRetries || (error?.status !== "UNAVAILABLE" && error?.status !== "RESOURCE_EXHAUSTED" && !error?.message?.includes('503'))) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt))); // exponential backoff
       }
-      return JSON.parse(text) as T;
-    } catch (error) {
-      console.error(
-        `Error in generateStructuredOutput with model ${model}:`,
-        error,
-      );
-      throw error;
     }
+    throw new Error(`Failed to generate structured output after ${maxRetries} attempts`);
   }
 }
 

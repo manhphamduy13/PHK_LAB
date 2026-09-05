@@ -1,36 +1,30 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Play, CheckCircle, Lock, BookOpen } from 'lucide-react';
-
-const DUMMY_COURSE = {
-  id: 'c1',
-  title: 'Vật Lý 10 Cơ Bản',
-  description: 'Khám phá thế giới vật chất, từ chuyển động của các hạt vi mô đến các hành tinh trong hệ mặt trời.',
-  progress: 25,
-  chapters: [
-    {
-      id: 'ch1',
-      title: 'Chương 1: Động Học Chất Điểm',
-      lessons: [
-        { id: 'l1', title: 'Bài 1: Chuyển động cơ', status: 'completed' },
-        { id: 'l2', title: 'Bài 2: Chuyển động thẳng đều', status: 'completed' },
-        { id: 'l3', title: 'Bài 3: Chuyển động thẳng biến đổi đều', status: 'current' },
-        { id: 'l4', title: 'Bài 4: Sự rơi tự do', status: 'locked' },
-      ]
-    },
-    {
-      id: 'ch2',
-      title: 'Chương 2: Động Lực Học Chất Điểm',
-      lessons: [
-        { id: 'l5', title: 'Bài 1: Lực và Gia tốc', status: 'locked' },
-        { id: 'l6', title: 'Bài 2: Ba định luật Newton', status: 'locked' },
-      ]
-    }
-  ]
-};
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
 
 export default function CourseDetails() {
   const { id } = useParams();
-  
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const res = await api.get(`/courses/${id}`);
+        setCourse(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchCourse();
+  }, [id]);
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Đang tải...</div>;
+  if (!course) return <div className="p-8 text-center text-red-500 font-bold">Không tìm thấy khóa học</div>;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Link to="/student/courses" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-slate-900 transition-colors">
@@ -42,17 +36,17 @@ export default function CourseDetails() {
       <div className="bg-blue-500 rounded-3xl p-8 border-b-4 border-blue-700 text-white relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 bg-white/20 rounded-xl text-xs font-bold uppercase tracking-wider">THPT</span>
-            <span className="px-3 py-1 bg-white/20 rounded-xl text-xs font-bold uppercase tracking-wider">Vật Lý</span>
+            <span className="px-3 py-1 bg-white/20 rounded-xl text-xs font-bold uppercase tracking-wider">{course.grade || 'THPT'}</span>
+            <span className="px-3 py-1 bg-white/20 rounded-xl text-xs font-bold uppercase tracking-wider">{course.subject || 'Vật Lý'}</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tight mb-4">{DUMMY_COURSE.title}</h1>
-          <p className="text-blue-100 font-medium text-lg leading-relaxed mb-8">{DUMMY_COURSE.description}</p>
+          <h1 className="text-4xl font-black tracking-tight mb-4">{course.title}</h1>
+          <p className="text-blue-100 font-medium text-lg leading-relaxed mb-8">{course.description}</p>
           
           <div className="flex items-center gap-4">
             <div className="flex-1 bg-white/20 h-3 rounded-full overflow-hidden">
-              <div className="bg-white h-full rounded-full" style={{ width: `${DUMMY_COURSE.progress}%` }} />
+              <div className="bg-white h-full rounded-full" style={{ width: `${course.progress || 0}%` }} />
             </div>
-            <span className="font-black">{DUMMY_COURSE.progress}%</span>
+            <span className="font-black">{course.progress || 0}%</span>
           </div>
         </div>
         <div className="absolute right-0 top-0 text-9xl opacity-10 translate-x-4 -translate-y-4">⚛️</div>
@@ -60,13 +54,13 @@ export default function CourseDetails() {
 
       {/* Chapters */}
       <div className="space-y-6">
-        {DUMMY_COURSE.chapters.map((chapter, index) => (
+        {course.chapters?.map((chapter: any, index: number) => (
           <div key={chapter.id} className="bg-white rounded-3xl border-2 border-b-4 border-slate-200 overflow-hidden">
             <div className="p-6 bg-slate-50 border-b-2 border-slate-100">
               <h2 className="text-xl font-black text-slate-900">{chapter.title}</h2>
             </div>
             <div className="p-4 space-y-2">
-              {chapter.lessons.map((lesson) => (
+              {chapter.lessons?.map((lesson: any) => (
                 <Link 
                   to={lesson.status !== 'locked' ? `/student/lessons/${lesson.id}` : '#'}
                   key={lesson.id} 

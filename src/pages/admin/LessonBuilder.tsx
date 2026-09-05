@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, GripVertical, Plus, Save, Play, Type, Image as ImageIcon, Video, HelpCircle, Layers, FlaskConical, LayoutTemplate, MoreVertical } from 'lucide-react';
+import api from '../../lib/api';
 
 const BLOCK_TYPES = [
   { id: 'heading', name: 'Tiêu đề', icon: Type, color: 'text-blue-500' },
@@ -14,17 +15,68 @@ const BLOCK_TYPES = [
 
 export default function LessonBuilder() {
   const navigate = useNavigate();
-  const [blocks, setBlocks] = useState([
-    { id: '1', type: 'heading', content: 'Chuyển động thẳng đều' },
-    { id: '2', type: 'text', content: 'Trong bài này chúng ta sẽ tìm hiểu về chuyển động thẳng đều...' }
-  ]);
-  const [activeBlock, setActiveBlock] = useState<string | null>('1');
+  const { lessonId } = useParams();
+  const [lessonTitle, setLessonTitle] = useState('');
+  const [lessonStatus, setLessonStatus] = useState('DRAFT');
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [activeBlock, setActiveBlock] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (lessonId) {
+      fetchLesson();
+    }
+  }, [lessonId]);
+
+  const fetchLesson = async () => {
+    try {
+      const res = await api.get(`/courses/lessons/${lessonId}`);
+      setLessonTitle(res.data.title);
+      setLessonStatus(res.data.status || 'DRAFT');
+      
+      let parsedContent = [];
+      try {
+        if (res.data.content) {
+          parsedContent = typeof res.data.content === 'string' ? JSON.parse(res.data.content) : res.data.content;
+        }
+      } catch(e) {
+         console.warn("Could not parse content JSON", e);
+      }
+      setBlocks(Array.isArray(parsedContent) ? parsedContent : []);
+      if (parsedContent.length > 0) setActiveBlock(parsedContent[0].id);
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi tải bài giảng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put(`/courses/lessons/${lessonId}`, {
+        title: lessonTitle,
+        status: lessonStatus,
+        content: blocks
+      });
+      alert('Đã lưu bài giảng');
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi khi lưu bài giảng');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const addBlock = (type: string) => {
     const newBlock = { id: Date.now().toString(), type, content: '' };
     setBlocks([...blocks, newBlock]);
     setActiveBlock(newBlock.id);
   };
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Đang tải...</div>;
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-slate-50 -m-8 font-sans">
@@ -59,16 +111,25 @@ export default function LessonBuilder() {
             </button>
             <div>
                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Đang chỉnh sửa</div>
-               <h1 className="font-black text-slate-900 leading-none">Bài 1: Chuyển động cơ</h1>
+               <input 
+                 type="text" 
+                 value={lessonTitle}
+                 onChange={e => setLessonTitle(e.target.value)}
+                 className="font-black text-slate-900 leading-none outline-none bg-transparent"
+               />
             </div>
-            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded uppercase tracking-wider ml-2 border border-amber-200">Draft</span>
+            <span className={`px-2 py-1 text-xs font-bold rounded uppercase tracking-wider ml-2 border ${
+              lessonStatus === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200'
+            }`}>
+              {lessonStatus}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">
               <Play className="w-4 h-4" /> Preview
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-colors shadow-sm">
-              <Save className="w-4 h-4" /> Lưu JSON
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50">
+              <Save className="w-4 h-4" /> {saving ? 'Đang lưu...' : 'Lưu JSON'}
             </button>
           </div>
         </div>
@@ -168,7 +229,11 @@ export default function LessonBuilder() {
               
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-2">Trạng thái (Status)</label>
-                <select className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold outline-none text-sm cursor-pointer">
+                <select 
+                  value={lessonStatus}
+                  onChange={e => setLessonStatus(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold outline-none text-sm cursor-pointer"
+                >
                   <option value="DRAFT">DRAFT</option>
                   <option value="AI_GENERATED">AI_GENERATED</option>
                   <option value="NEEDS_REVIEW">NEEDS_REVIEW</option>

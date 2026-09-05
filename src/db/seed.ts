@@ -20,15 +20,15 @@ export async function seed() {
   // Seed Users
   const adminId = uuidv4();
   const teacherId = uuidv4();
-  const studentId = uuidv4();
   
   const defaultPassword = await bcrypt.hash('password123', 10);
   
-  await db.insert(users).values([
+  const usersToInsert = [
     { id: adminId, email: 'admin@phk.edu', password: defaultPassword, name: 'Admin', roleId: adminRoleId, createdAt: new Date() },
     { id: teacherId, email: 'khe.pham@phk.edu', password: defaultPassword, name: 'Phạm Hữu Khê', roleId: teacherRoleId, createdAt: new Date() },
-    { id: studentId, email: 'student@phk.edu', password: defaultPassword, name: 'Học sinh Demo', roleId: studentRoleId, createdAt: new Date() },
-  ]).onConflictDoNothing();
+  ];
+
+  await db.insert(users).values(usersToInsert).onConflictDoNothing();
 
   // Seed Grades
   const grade10Id = uuidv4();

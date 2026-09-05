@@ -91,6 +91,7 @@ router.get("/my", async (req: any, res) => {
         assignmentId: assignments.id,
         title: assignments.title,
         type: assignments.type,
+        lessonId: assignments.lessonId,
         dueDate: assignments.dueDate,
         status: studentAssignments.status,
         score: studentAssignments.score,

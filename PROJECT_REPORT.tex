@@ -1,0 +1,117 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{parskip}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single}
+
+\title{PHK STEM LAB\\\large Bao cao tong quan va huong dan demo local}
+\author{PHK LAB}
+\date{05/09/2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Tong quan}
+PHK STEM LAB la ung dung hoc tap STEM cho hoc sinh, giao vien va quan tri vien. Ung dung duoc xay dung voi React va TypeScript o phia giao dien, Express o phia may chu, Drizzle ORM cho lop truy cap du lieu, va SQLite local cho kich ban demo. Cac chuc nang tri thuc nhan tao khong chay tu mo hinh local: ung dung gui request den AI API, mac dinh la Gemini, thong qua khoa API trong bien moi truong.
+
+Muc tieu cua ban demo la cho phep trinh dien day du luong hoc tap tren mot may local: dang ky/dang nhap, quan ly khoa hoc, hoc bai, bai tap, flashcard, mo phong va tro ly AI. Du lieu nguoi dung, khoa hoc, tien do va cac job AI duoc luu trong database local de co the khoi dong lai ma khong mat du lieu.
+
+\section{Kien truc ky thuat}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Frontend:} React 19, TypeScript, React Router, Zustand, Tailwind CSS, Lucide và Recharts.
+  \item \textbf{Backend:} Express, JWT authentication, Helmet, CORS, rate limit va cac route REST duoi prefix \texttt{/api}.
+  \item \textbf{Database:} SQLite local qua Drizzle ORM; schema co the chuyen sang PostgreSQL cho deploy.
+  \item \textbf{AI:} Gemini API thong qua \texttt{@google/genai}. Mo hinh nhanh va mo hinh suy luan duoc cau hinh bang \texttt{FAST\_MODEL} va \texttt{REASONING\_MODEL}.
+  \item \textbf{Storage:} thu muc upload local duoc cau hinh bang \texttt{STORAGE\_ROOT}; PDF duoc kiem tra extension, MIME, chu ky PDF va dung luong.
+  \item \textbf{Simulation:} mo phong vat ly chay o trinh duyet voi mathjs, khong phu thuoc dich vu runtime ben ngoai.
+\end{itemize}
+
+\section{Cac tinh nang co ban}
+\subsection{Nguoi hoc}
+\begin{itemize}[leftmargin=*]
+  \item Dang ky, dang nhap, dang xuat va bao ve route theo role.
+  \item Dashboard voi khoa hoc dang hoc, XP, level, streak va muc tieu tuan.
+  \item Kham pha khoa hoc voi tim kiem, loc theo cap hoc va loc theo mon hoc.
+  \item Mo khoa hoc, mo bai giang, dieu huong section, theo doi tien do va hoan thanh bai.
+  \item Hien thi noi dung text, heading, image, video, quiz va simulation trong lesson player.
+  \item Bai tap, flashcard va ghi nhan ket qua on tap vao database.
+  \item Tro ly AI Tutor: hoi dap, xin goi y va rut gon giai thich thong qua AI API.
+  \item Lap ke hoach on thi, xem thanh tich va quan ly ho so ca nhan.
+\end{itemize}
+
+\subsection{Giao vien va quan tri vien}
+\begin{itemize}[leftmargin=*]
+  \item Quan ly khoa hoc, chuong, bai giang; tao, sua va xoa noi dung.
+  \item Xay dung bai giang voi cac block noi dung va luu noi dung vao backend.
+  \item Quan ly ngan hang bai tap, tim kiem, loc, sua va xoa bai tap.
+  \item Tao lop hoc, xem concept heatmap va theo doi hoc sinh.
+  \item Tao assignment cho lop va xem danh sach bai duoc giao.
+  \item Quan ly nguoi dung va thu vien media, bao gom upload, download va xoa tai lieu.
+  \item AI Pipeline: upload PDF, theo doi job, mo review bai hoc AI va publish bai hoc.
+  \item Teacher AI Assistant va Early Warning phuc vu ho tro giao vien.
+\end{itemize}
+
+\section{Cac luong demo quan trong}
+\begin{enumerate}[leftmargin=*]
+  \item Khoi dong server local va truy cap giao dien.
+  \item Tao tai khoan hoc sinh va dang nhap.
+  \item Mo dashboard, vao khoa hoc, mo bai giang va chay simulation.
+  \item Vao AI Tutor va gui cau hoi. Request se di qua backend va can \texttt{GEMINI\_API\_KEY} hop le.
+  \item Dang nhap tai khoan giao vien, tao khoa hoc/lop/bai giang va xem noi dung quan tri.
+  \item Vao AI Content, upload mot PDF hop le, cho job hoan tat, review va publish.
+  \item Kiem tra lai du lieu trong \texttt{local.db} sau khi tat va khoi dong server.
+\end{enumerate}
+
+\section{Cach chay demo local}
+Tao file \texttt{.env} tu \texttt{.env.example}, sau do dat toi thieu cac gia tri:
+\begin{lstlisting}
+DATABASE_URL=file:./local.db
+JWT_SECRET=change-this-for-local-demo
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-key
+FAST_MODEL=gemini-2.0-flash
+REASONING_MODEL=gemini-2.0-flash
+STORAGE_ROOT=./uploads
+\end{lstlisting}
+
+Cac lenh chinh:
+\begin{lstlisting}
+npm install
+npm run db:push
+npm run db:seed
+npm run dev
+\end{lstlisting}
+
+Truy cap dia chi duoc in boi Vite/server, thong thuong la \url{http://localhost:5000}. Kiem tra suc khoe bang \url{http://localhost:5000/health}. De tao ban build production local:
+\begin{lstlisting}
+npm run lint
+npm run build
+npm start
+\end{lstlisting}
+
+\section{Bao mat va cau hinh}
+JWT duoc luu o client trong localStorage de phuc vu ban demo. Backend van xac thuc token cho cac API va phan quyen theo role. Khi deploy public, nen chuyen sang cookie httpOnly, dung HTTPS, dat JWT secret rieng, gioi han CORS theo origin, va khong ghi khoa AI vao log.
+
+PDF upload can gioi han dung luong va signature. API AI co rate limit va xu ly loi; giao dien chi thong bao thanh cong sau khi response HTTP la thanh cong. Database local phu hop demo mot may, khong phu hop cho nhieu instance hoac du lieu production.
+
+\section{Pham vi da hoan thien trong ban demo}
+Cac loi wiring da duoc sua gom: import thieu o dashboard hoc sinh, dong bo khoa token giua auth va AI Tutor, payload danh gia flashcard, kiem tra HTTP response cua publish/upload AI, polling job theo token, tim kiem va loc danh sach khoa hoc/bai tap, tao lop qua API, assignment mo den bai hoc/bai tap, quiz co trang thai lua chon, va nut hoi AI mo den AI Tutor.
+
+Mot so giao dien van phu thuoc route backend chua ton tai trong kien truc hien tai, nhu audit-log chi tiet, question bank CRUD, experiment library CRUD, lesson rollback, assignment submission/result va AI regenerate. Cac control nay can them API va schema neu muon demo nghiep vu day du; khong nen danh dau la PASS chi vi giao dien da hien thi.
+
+\section{Ket luan}
+PHK STEM LAB da phu hop de demo co kiem soat voi local SQLite va AI API ben ngoai. Kich ban demo nen dung du lieu mau nho, mot tai khoan hoc sinh, mot tai khoan giao vien va mot API key Gemini co quota. Truoc khi cong bo public can kiem thu PostgreSQL, persistence cua storage, auth/authorization voi nhieu tai khoan, quota AI va quy trinh backup du lieu.
+
+\end{document}
