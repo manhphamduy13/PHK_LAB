@@ -22,6 +22,8 @@ import Assignments from "./pages/student/Assignments";
 import Flashcards from "./pages/student/Flashcards";
 import AITutor from "./pages/student/AITutor";
 import ExamPrep from "./pages/student/ExamPrep";
+import VirtualLab from "./pages/student/VirtualLab";
+import VirtualLabPlayer from "./pages/student/VirtualLabPlayer";
 import Achievements from "./pages/student/Achievements";
 import Profile from "./pages/student/Profile";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -76,6 +78,8 @@ export default function App() {
             <Route path="/student/achievements" element={<Achievements />} />
             <Route path="/student/ai-tutor" element={<AITutor />} />
             <Route path="/student/exam-prep" element={<ExamPrep />} />
+            <Route path="/student/labs" element={<VirtualLab />} />
+            <Route path="/student/labs/:labId" element={<VirtualLabPlayer />} />
           </Route>
         </Route>
 

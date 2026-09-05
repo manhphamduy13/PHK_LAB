@@ -45,6 +45,13 @@ export interface SimQuestion {
   type: 'multiple_choice' | 'short_answer';
   options?: string[];
   correctAnswer: string;
+  /**
+   * Gợi ý theo từng cấp (1 -> 3), hiển thị dần dần thay vì đưa đáp án ngay.
+   * Cấp 1: gợi mở quan sát dữ liệu.
+   * Cấp 2: gợi hướng suy luận.
+   * Cấp 3: gợi liên hệ công thức/kết luận, vẫn không nêu thẳng đáp án.
+   */
+  hints?: string[];
 }
 
 export interface SimulationSpecification {

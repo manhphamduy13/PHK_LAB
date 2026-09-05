@@ -16,13 +16,20 @@ export class PhysicsEngine {
       parameters[p.id] = p.default;
     }
 
-    return {
+    this.state = {
       status: 'READY',
       time: 0,
       parameters,
       measurements: [],
       errors: []
     };
+
+    // Đảm bảo các đại lượng tính toán (formula.target) có giá trị đúng
+    // ngay từ lần render đầu tiên, thay vì đợi người dùng chỉnh tham số.
+    this.evaluateFormulas();
+    this.validateConstraints();
+
+    return this.state;
   }
 
   public getState(): SimulationState {

@@ -49,15 +49,23 @@ export default function AIPipelineDashboard() {
         body: formData,
       });
       if (!response.ok) {
-        throw new Error(await response.text());
+        let message = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          message = errorData.error || message;
+        } catch {
+          const responseText = await response.text();
+          if (responseText) message = responseText;
+        }
+        throw new Error(message);
       }
       setFile(null);
       fetchJobs();
     } catch (error) {
       console.error("Upload failed", error);
-      alert(
-        "Tải PDF thất bại. Vui lòng kiểm tra định dạng, dung lượng và cấu hình AI.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Lỗi không xác định";
+      alert(`Tải PDF thất bại: ${message}`);
     } finally {
       setIsUploading(false);
     }

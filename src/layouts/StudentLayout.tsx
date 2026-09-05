@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useStudentStore } from '../store/studentStore';
-import { BookOpen, Map, Trophy, User, Bot, LogOut, Hexagon, Target, Layers, FileText } from 'lucide-react';
+import { BookOpen, Map, Trophy, User, Bot, LogOut, Hexagon, Target, Layers, FileText, FlaskConical } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useEffect } from 'react';
 
@@ -23,6 +23,7 @@ export function StudentLayout() {
   const navItems = [
     { icon: Map, label: 'Lộ trình', path: '/student' },
     { icon: BookOpen, label: 'Khóa học', path: '/student/courses' },
+    { icon: FlaskConical, label: 'Thí nghiệm ảo', path: '/student/labs' },
     { icon: Target, label: 'Tự luyện', path: '/student/exercises' },
     { icon: FileText, label: 'BTVN', path: '/student/assignments' },
     { icon: Layers, label: 'Flashcards', path: '/student/flashcards' },
