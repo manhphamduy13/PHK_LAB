@@ -32,6 +32,35 @@ router.get("/", async (req: any, res) => {
   }
 });
 
+router.get("/:id", async (req: any, res) => {
+  try {
+    const { exercises, questions, answers } = await import("../db/schema");
+    const exercise = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.id, req.params.id))
+      .limit(1);
+    if (exercise.length === 0)
+      return res.status(404).json({ error: "Exercise not found" });
+    const questionRows = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.exerciseId, req.params.id));
+    const fullQuestions = await Promise.all(
+      questionRows.map(async (question) => ({
+        ...question,
+        answers: await db
+          .select()
+          .from(answers)
+          .where(eq(answers.questionId, question.id)),
+      })),
+    );
+    res.json({ ...exercise[0], questions: fullQuestions });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch exercise" });
+  }
+});
+
 router.post("/", async (req: any, res) => {
   try {
     const { exercises } = await import("../db/schema");
@@ -39,9 +68,9 @@ router.post("/", async (req: any, res) => {
     const newEx = {
       id: uuidv4(),
       title,
-      type: type || 'TRẮC NGHIỆM',
-      difficulty: difficulty || 'MEDIUM',
-      conceptId: null
+      type: type || "TRẮC NGHIỆM",
+      difficulty: difficulty || "MEDIUM",
+      conceptId: null,
     };
     await db.insert(exercises).values(newEx);
     res.json(newEx);
@@ -65,7 +94,10 @@ router.put("/:id", async (req: any, res) => {
   try {
     const { exercises } = await import("../db/schema");
     const { title } = req.body;
-    await db.update(exercises).set({ title }).where(eq(exercises.id, req.params.id));
+    await db
+      .update(exercises)
+      .set({ title })
+      .where(eq(exercises.id, req.params.id));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to update" });

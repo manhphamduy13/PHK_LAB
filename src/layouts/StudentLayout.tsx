@@ -4,6 +4,7 @@ import { useStudentStore } from '../store/studentStore';
 import { BookOpen, Map, Trophy, User, Bot, LogOut, Hexagon, Target, Layers, FileText, FlaskConical } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useEffect } from 'react';
+import { NotificationBell } from '../components/NotificationBell';
 
 export function StudentLayout() {
   const { user, logout } = useAuthStore();
@@ -83,6 +84,8 @@ export function StudentLayout() {
                  </div>
              </div>
           </div>
+
+          <NotificationBell />
 
           <button 
             onClick={handleLogout}

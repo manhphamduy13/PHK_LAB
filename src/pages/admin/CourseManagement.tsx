@@ -50,7 +50,9 @@ export default function CourseManagement() {
       fetchCourses();
     } catch (err) {
       console.error(err);
-      alert("Lỗi tạo khóa học");
+      alert(
+        `Lỗi tạo khóa học: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
@@ -62,7 +64,9 @@ export default function CourseManagement() {
       fetchCourses();
     } catch (err) {
       console.error(err);
-      alert("Lỗi tạo chương");
+      alert(
+        `Lỗi tạo chương: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
@@ -77,7 +81,9 @@ export default function CourseManagement() {
       fetchCourses();
     } catch (err) {
       console.error(err);
-      alert("Lỗi tạo bài giảng");
+      alert(
+        `Lỗi tạo bài giảng: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 

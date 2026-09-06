@@ -16,25 +16,11 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { getJwtSecret } from "../config";
 
+import { authMiddleware, requireRole } from "../middleware/auth";
+
 const router = express.Router();
-const JWT_SECRET = getJwtSecret();
+router.use(authMiddleware, requireRole(["TEACHER", "SUPER_ADMIN"]));
 
-const authMiddleware = (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "No token" });
-  try {
-    const decoded: any = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
-    if (decoded.role !== "TEACHER") {
-      return res.status(403).json({ error: "Forbidden. Teacher only." });
-    }
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
-  }
-};
-
-router.use(authMiddleware);
 
 // Helper tools for the AI to query actual database state
 const teacherTools = {

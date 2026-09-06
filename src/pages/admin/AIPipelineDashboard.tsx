@@ -14,6 +14,7 @@ export default function AIPipelineDashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [maxPdfSize, setMaxPdfSize] = useState<number | null>(null);
   const { token } = useAuthStore();
   const navigate = useNavigate();
 
@@ -32,6 +33,10 @@ export default function AIPipelineDashboard() {
 
   useEffect(() => {
     fetchJobs();
+    fetch("/api/ai/config", { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => data?.maxPdfSize && setMaxPdfSize(data.maxPdfSize))
+      .catch(console.error);
     const interval = setInterval(fetchJobs, 5000); // poll every 5s
     return () => clearInterval(interval);
   }, [token]);
@@ -108,7 +113,10 @@ export default function AIPipelineDashboard() {
                 {file ? file.name : "Chọn file PDF hoặc kéo thả vào đây"}
               </p>
               <p className="text-sm text-slate-500 font-medium mt-1">
-                Dung lượng tối đa: 10MB
+                Dung lượng tối đa:{" "}
+                {maxPdfSize
+                  ? `${(maxPdfSize / 1024 / 1024).toFixed(0)}MB`
+                  : "đang tải..."}
               </p>
             </label>
           </div>
@@ -168,9 +176,14 @@ export default function AIPipelineDashboard() {
                       <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                       <button
                         onClick={() => {
-                          const res = job.resultData
-                            ? JSON.parse(job.resultData)
-                            : null;
+                          let res = null;
+                          try {
+                            res = job.resultData
+                              ? JSON.parse(job.resultData)
+                              : null;
+                          } catch {
+                            res = null;
+                          }
                           if (res && res.lessonId) {
                             navigate(
                               `/admin/ai-content/${res.lessonId}/review`,

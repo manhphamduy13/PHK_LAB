@@ -52,10 +52,19 @@ export class GamificationEngine {
                 .set({ totalXp: newTotal, lastActiveAt: new Date() })
                 .where(eq(learnerProfiles.studentId, studentId));
                 
-            this.updateStreak(studentId);
+            await this.updateStreak(studentId);
+            return true;
+        } else {
+            await db.insert(learnerProfiles).values({
+                id: uuidv4(),
+                studentId,
+                totalXp: amount,
+                learningStreak: 1,
+                lastActiveAt: new Date(),
+                grade: 10,
+            });
             return true;
         }
-        return false;
     }
     
     static async updateStreak(studentId: string) {

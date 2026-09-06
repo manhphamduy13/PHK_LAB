@@ -6,6 +6,7 @@ import {
   learnerProfiles,
   conceptMastery,
   users,
+  interventions,
 } from "../db/schema";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
@@ -73,6 +74,29 @@ router.get("/signals", async (req: any, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch early warnings" });
+  }
+});
+
+router.post("/interventions", async (req: any, res) => {
+  try {
+    const { studentId, signalId, type, resourceId } = req.body;
+    if (!studentId || !type)
+      return res.status(400).json({ error: "studentId and type are required" });
+    const intervention = {
+      id: uuidv4(),
+      teacherId: req.user.userId,
+      studentId,
+      signalId: signalId || null,
+      type,
+      resourceId: resourceId || null,
+      status: "ACTIVE",
+      createdAt: new Date(),
+    };
+    await db.insert(interventions).values(intervention);
+    res.json(intervention);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to create intervention" });
   }
 });
 

@@ -105,7 +105,7 @@ export default function StudentDashboard() {
                       <Clock className="w-4 h-4" /> Còn khoảng 15 phút
                     </p>
                   </div>
-                  <Link to="/student/lessons/l3" className="w-full md:w-auto">
+                  <Link to="/student/courses" className="w-full md:w-auto">
                     <button className="w-full md:w-auto px-6 py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 border-b-4 border-blue-700 active:border-b-0 active:translate-y-1 transition-all group-hover:bg-blue-400">
                       <Play className="w-5 h-5 fill-current" />
                       Tiếp tục
@@ -171,7 +171,7 @@ export default function StudentDashboard() {
               Tiến độ tuần này
             </h3>
             <div className="h-40 flex items-end gap-2 justify-between">
-              {[40, 70, 45, 90, 60, 20, 0].map((h, i) => (
+              {[0, 0, 0, 0, 0, 0, 0].map((h, i) => (
                 <div
                   key={i}
                   className="w-8 bg-blue-50 rounded-t-lg relative group h-full flex items-end"
@@ -207,32 +207,9 @@ export default function StudentDashboard() {
               </Link>
             </div>
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 text-2xl shadow-sm">
-                  🎯
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900">
-                    Chính xác tuyệt đối
-                  </h4>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                    Đạt 10/10 bài kiểm tra
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl shadow-sm">
-                  🔬
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900">
-                    Nhà khoa học trẻ
-                  </h4>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                    Hoàn thành 5 thí nghiệm
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm font-medium text-slate-500">
+                Chưa có thành tựu. Hãy hoàn thành bài học đầu tiên.
+              </p>
             </div>
           </div>
         </div>

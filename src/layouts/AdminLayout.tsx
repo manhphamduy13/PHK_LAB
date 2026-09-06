@@ -15,6 +15,7 @@ import {
   Sparkles,
   GraduationCap
 } from 'lucide-react';
+import { NotificationBell } from '../components/NotificationBell';
 
 export function AdminLayout() {
   const { user, logout } = useAuthStore();
@@ -109,7 +110,8 @@ export function AdminLayout() {
             </span>
             <input type="text" placeholder="Tìm kiếm học sinh, khóa học..." className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" />
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <NotificationBell />
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
               <span className="text-lg">🛡️</span>
               <span className="font-bold text-sm">Workspace</span>

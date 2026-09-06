@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, Edit3, Trash2, Filter } from "lucide-react";
 import api from "../../lib/api";
+import { Link } from "react-router-dom";
 
 export default function ExerciseBank() {
   const [exercises, setExercises] = useState<any[]>([]);
@@ -197,6 +198,13 @@ export default function ExerciseBank() {
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
+                      <Link
+                        to={`/admin/questions?exerciseId=${ex.id}`}
+                        title="Quản lý câu hỏi"
+                        className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-colors"
+                      >
+                        <span className="text-xs font-black">Q</span>
+                      </Link>
                     </div>
                   </td>
                 </tr>

@@ -25,9 +25,13 @@ export default function VirtualLabPlayer() {
     );
   }
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!completed) {
-      addXP(30);
+      await addXP(30, {
+        action: "COMPLETE_SIMULATION",
+        sourceType: "SIMULATION",
+        sourceId: labId || "simulation",
+      });
       setCompleted(true);
     }
   };

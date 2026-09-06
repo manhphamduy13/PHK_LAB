@@ -1,17 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BookOpen, AlertCircle, BarChart2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useLocation } from 'react-router-dom';
 
 export default function TeacherAIAssistant() {
+  const location = useLocation();
   const [messages, setMessages] = useState<any[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(location.state?.prefill || '');
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const { token } = useAuthStore();
 
   useEffect(() => {
+    if (location.state?.prefill) {
+      setInput(location.state.prefill);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
 
   const handleSend = async () => {
     if (!input.trim()) return;

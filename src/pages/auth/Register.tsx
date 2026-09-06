@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, FlaskConical } from "lucide-react";
@@ -10,10 +10,19 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [classId, setClassId] = useState("");
+  const [classes, setClasses] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch("/api/classes/options")
+      .then((response) => (response.ok ? response.json() : []))
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -23,7 +32,12 @@ export default function Register() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          classId: classId || undefined,
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -121,6 +135,22 @@ export default function Register() {
                 minLength={8}
                 required
               />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold">Lớp học</label>
+              <select
+                value={classId}
+                onChange={(event) => setClassId(event.target.value)}
+                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 font-bold"
+                required
+              >
+                <option value="">Chọn lớp học</option>
+                {classes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} - GV: {item.teacherName}
+                  </option>
+                ))}
+              </select>
             </div>
             <Button
               type="submit"

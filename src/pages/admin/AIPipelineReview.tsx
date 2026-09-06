@@ -16,6 +16,8 @@ export default function AIPipelineReview() {
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [reprocessing, setReprocessing] = useState(false);
 
   useEffect(() => {
     const fetchLesson = async () => {
@@ -24,7 +26,17 @@ export default function AIPipelineReview() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.lesson) setLesson(data.lesson);
+        if (data.lesson) {
+          setLesson(data.lesson);
+          if (data.lesson.sourceDocumentId) {
+            const pdfResponse = await fetch(
+              `/api/ai/documents/${data.lesson.sourceDocumentId}/download`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            );
+            if (pdfResponse.ok)
+              setPdfUrl(URL.createObjectURL(await pdfResponse.blob()));
+          }
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -32,7 +44,30 @@ export default function AIPipelineReview() {
       }
     };
     if (id) fetchLesson();
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
   }, [id, token]);
+
+  const handleRegenerate = async () => {
+    if (!lesson?.sourceDocumentId) return;
+    setReprocessing(true);
+    try {
+      const response = await fetch(
+        `/api/ai/documents/${lesson.sourceDocumentId}/reprocess`,
+        { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!response.ok) throw new Error(await response.text());
+      alert("Đã tạo job phân tích lại. Theo dõi tại AI Pipeline.");
+      navigate("/admin/ai-content");
+    } catch (error) {
+      alert(
+        `Regenerate thất bại: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -42,13 +77,21 @@ export default function AIPipelineReview() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
-        throw new Error(await response.text());
+        let message = `HTTP ${response.status}`;
+        try {
+          message = (await response.json()).error || message;
+        } catch {
+          message = await response.text();
+        }
+        throw new Error(message);
       }
       alert("Đã xuất bản thành công!");
       navigate("/admin/ai-content");
     } catch (error) {
       console.error(error);
-      alert("Lỗi xuất bản");
+      alert(
+        `Lỗi xuất bản: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       setPublishing(false);
     }
@@ -112,12 +155,18 @@ export default function AIPipelineReview() {
             <FileText className="w-5 h-5" />
             <h2 className="font-bold">Original Source (PDF)</h2>
           </div>
-          <div className="flex-1 flex items-center justify-center bg-white rounded-xl border-2 border-slate-200">
-            <p className="text-slate-400 font-medium text-center p-8">
-              (Khu vực hiển thị PDF Viewer gốc)
-              <br />
-              Document ID: {lesson.sourceDocumentId}
-            </p>
+          <div className="flex-1 bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+            {pdfUrl ? (
+              <iframe
+                title="PDF source"
+                src={pdfUrl}
+                className="w-full h-full min-h-[500px]"
+              />
+            ) : (
+              <p className="text-slate-400 font-medium text-center p-8">
+                Không có PDF nguồn cho bài học này.
+              </p>
+            )}
           </div>
         </div>
 
@@ -126,6 +175,13 @@ export default function AIPipelineReview() {
           <h2 className="font-black text-xl text-blue-900 mb-6 border-b-2 border-blue-100 pb-4">
             AI Generated Lesson
           </h2>
+          <button
+            onClick={handleRegenerate}
+            disabled={reprocessing || !lesson.sourceDocumentId}
+            className="mb-5 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-bold disabled:opacity-50"
+          >
+            {reprocessing ? "Đang tạo lại..." : "Regenerate toàn bộ"}
+          </button>
 
           <div className="space-y-6">
             {/* Metadata */}
@@ -148,9 +204,6 @@ export default function AIPipelineReview() {
               <div>
                 <h3 className="font-bold text-slate-800 mb-3 flex items-center justify-between">
                   <span>Khái niệm trọng tâm</span>
-                  <button className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                    Regenerate
-                  </button>
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {contentData.concepts.map((c: string, idx: number) => (
@@ -181,12 +234,6 @@ export default function AIPipelineReview() {
                         {sec.title}
                       </h4>
                       <p className="text-slate-600 text-sm">{sec.content}</p>
-
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="text-xs font-bold text-blue-600 bg-white border-2 border-blue-100 px-2 py-1 rounded shadow-sm hover:bg-blue-50">
-                          Edit / Regenerate
-                        </button>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -211,9 +258,6 @@ export default function AIPipelineReview() {
                       <p className="text-emerald-700 text-sm">
                         {exp.description}
                       </p>
-                      <button className="mt-3 text-xs font-bold text-emerald-600 bg-white border border-emerald-200 px-3 py-1 rounded-full shadow-sm hover:bg-emerald-50">
-                        Tạo Simulation API
-                      </button>
                     </div>
                   ))}
                 </div>

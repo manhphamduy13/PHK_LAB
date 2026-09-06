@@ -18,7 +18,7 @@ export default function LessonPlayer() {
   const navigate = useNavigate();
   const [currentSection, setCurrentSection] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const { addXP, incrementLessons } = useStudentStore();
+  const { completeLesson } = useStudentStore();
 
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -73,11 +73,12 @@ export default function LessonPlayer() {
       : 100;
   const isLast = currentSection >= lesson.sections.length - 1;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setSelectedAnswer(null);
     if (isLast) {
-      addXP(50);
-      incrementLessons();
+      if (id) {
+        await completeLesson(id);
+      }
       navigate(-1);
     } else {
       setCurrentSection((curr) => curr + 1);

@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS subjects (id text PRIMARY KEY, name text NOT NULL UNI
 CREATE TABLE IF NOT EXISTS grades (id text PRIMARY KEY, name text NOT NULL UNIQUE);
 CREATE TABLE IF NOT EXISTS courses (id text PRIMARY KEY, title text NOT NULL, description text, teacher_id text NOT NULL REFERENCES users(id), subject_id text NOT NULL REFERENCES subjects(id), grade_id text NOT NULL REFERENCES grades(id));
 CREATE TABLE IF NOT EXISTS chapters (id text PRIMARY KEY, course_id text NOT NULL REFERENCES courses(id), title text NOT NULL, "order" integer NOT NULL);
-CREATE TABLE IF NOT EXISTS lessons (id text PRIMARY KEY, chapter_id text NOT NULL REFERENCES chapters(id), title text NOT NULL, content text, "order" integer NOT NULL, status text DEFAULT 'DRAFT');
+CREATE TABLE IF NOT EXISTS documents (id text PRIMARY KEY, filename text NOT NULL, original_name text NOT NULL, mime_type text NOT NULL, size integer NOT NULL, path text NOT NULL, created_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS lessons (id text PRIMARY KEY, chapter_id text NOT NULL REFERENCES chapters(id), title text NOT NULL, content text, "order" integer NOT NULL, status text DEFAULT 'DRAFT', source_document_id text REFERENCES documents(id));
 CREATE TABLE IF NOT EXISTS documents (id text PRIMARY KEY, filename text NOT NULL, original_name text NOT NULL, mime_type text NOT NULL, size integer NOT NULL, path text NOT NULL, created_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS ai_jobs (id text PRIMARY KEY, document_id text REFERENCES documents(id), lesson_id text REFERENCES lessons(id), task text NOT NULL, status text NOT NULL, input_tokens integer, output_tokens integer, processing_time_ms integer, error text, retry_count integer DEFAULT 0, result_data text, created_at timestamptz NOT NULL, updated_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS experiments (id text PRIMARY KEY, lesson_id text REFERENCES lessons(id), title text NOT NULL, description text, config text);

@@ -67,6 +67,7 @@ export const lessons = pgTable("lessons", {
   content: text("content"),
   order: integer("order").notNull(),
   status: text("status").default("DRAFT"),
+  sourceDocumentId: text("source_document_id").references(() => documents.id),
 });
 export const documents = pgTable("documents", {
   id: text("id").primaryKey(),
@@ -103,6 +104,9 @@ export const exercises = pgTable("exercises", {
   id: text("id").primaryKey(),
   lessonId: text("lesson_id").references(() => lessons.id),
   title: text("title").notNull(),
+  type: text("type").default("TRẮC NGHIỆM"),
+  difficulty: text("difficulty").default("MEDIUM"),
+  conceptId: text("concept_id"),
 });
 export const questions = pgTable("questions", {
   id: text("id").primaryKey(),
@@ -302,6 +306,7 @@ export const interventions = pgTable("interventions", {
 export const classes = pgTable("classes", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  joinCode: text("join_code"),
   teacherId: text("teacher_id")
     .notNull()
     .references(() => users.id),
@@ -341,10 +346,13 @@ export const assignments = pgTable("assignments", {
     .references(() => classes.id),
   courseId: text("course_id").references(() => courses.id),
   lessonId: text("lesson_id").references(() => lessons.id),
+  exerciseId: text("exercise_id").references(() => exercises.id),
   type: text("type").notNull(),
   startDate: time("start_date"),
   dueDate: time("due_date"),
   status: text("status").default("DRAFT"),
+  attachFileKey: text("attach_file_key"),
+  attachFileName: text("attach_file_name"),
   createdAt: createdAt(),
 });
 export const studentAssignments = pgTable("student_assignments", {
@@ -357,8 +365,15 @@ export const studentAssignments = pgTable("student_assignments", {
     .references(() => users.id),
   status: text("status").default("NOT_STARTED"),
   score: integer("score"),
+  submissionComment: text("submission_comment"),
+  submissionContent: text("submission_content"),
+  submissionFileKey: text("submission_file_key"),
+  submissionFileName: text("submission_file_name"),
+  feedback: text("feedback"),
+  gradedAt: timestamp("graded_at", { withTimezone: true }),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
 });
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
@@ -371,5 +386,18 @@ export const notifications = pgTable("notifications", {
   resourceType: text("resource_type"),
   resourceId: text("resource_id"),
   readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: text("id").primaryKey(),
+  actorId: text("actor_id").references(() => users.id),
+  userId: text("user_id"),
+  userName: text("user_name"),
+  action: text("action").notNull(),
+  resource: text("resource"),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id"),
+  metadata: text("metadata"),
   createdAt: createdAt(),
 });

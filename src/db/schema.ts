@@ -41,3 +41,4 @@ export const xpTransactions = runtime.xpTransactions as any;
 export const assignments = runtime.assignments as any;
 export const studentAssignments = runtime.studentAssignments as any;
 export const notifications = runtime.notifications as any;
+export const auditLogs = runtime.auditLogs as any;

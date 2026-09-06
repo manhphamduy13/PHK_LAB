@@ -9,7 +9,7 @@ import { db } from "./src/db";
 import { users, roles, courses } from "./src/db/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { aiRouter } from "./src/routes/ai";
 import { learningRouter } from "./src/routes/learning";
@@ -25,6 +25,9 @@ import { gamificationRouter } from "./src/routes/gamification";
 import { notificationsRouter } from "./src/routes/notifications";
 import { analyticsRouter } from "./src/routes/analytics";
 import { studentAIRouter } from "./src/routes/studentAI";
+import { authMiddleware, requireRole } from "./src/middleware/auth";
+import { auditLogsRouter } from "./src/routes/auditLogs";
+import { questionsRouter } from "./src/routes/questions";
 import { appConfig, getJwtSecret, isProduction } from "./src/config";
 import { storageProvider } from "./src/services/storage";
 
@@ -32,7 +35,7 @@ const JWT_SECRET = getJwtSecret();
 
 async function startServer() {
   const app = express();
-  
+
   // Trust the first proxy to correctly resolve user IPs for rate limiting
   app.set("trust proxy", 1);
 
@@ -61,7 +64,9 @@ async function startServer() {
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false },
     handler: (req, res, next, options) => {
-      res.status(options.statusCode).json({ error: "Too many requests, please try again later." });
+      res
+        .status(options.statusCode)
+        .json({ error: "Too many requests, please try again later." });
     },
   });
 
@@ -72,7 +77,9 @@ async function startServer() {
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false },
     handler: (req, res, next, options) => {
-      res.status(options.statusCode).json({ error: "Too many AI requests, please try again later." });
+      res
+        .status(options.statusCode)
+        .json({ error: "Too many AI requests, please try again later." });
     },
   });
 
@@ -82,6 +89,24 @@ async function startServer() {
 
   // --- API ROUTES ---
   app.use("/api/ai", aiRouter);
+
+  app.get("/api/classes/options", async (_req, res) => {
+    try {
+      const { classes, users } = await import("./src/db/schema");
+      const rows = await db
+        .select({
+          id: classes.id,
+          name: classes.name,
+          teacherId: classes.teacherId,
+          teacherName: users.name,
+        })
+        .from(classes)
+        .innerJoin(users, eq(classes.teacherId, users.id));
+      res.json(rows);
+    } catch {
+      res.status(500).json({ error: "Failed to load class options" });
+    }
+  });
   app.use("/api/learning", learningRouter);
   app.use("/api/teacher/ai", teacherAIRouter);
   app.use("/api/exam-preparation", examPrepRouter);
@@ -95,6 +120,143 @@ async function startServer() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/student/ai", studentAIRouter);
+  app.use("/api/audit-logs", auditLogsRouter);
+  app.use("/api/audit-log", auditLogsRouter);
+  app.use("/api/questions", questionsRouter);
+
+  app.get(
+    "/api/admin/stats",
+    authMiddleware,
+    requireRole(["TEACHER", "SUPER_ADMIN"]),
+    async (req: any, res) => {
+      try {
+        const {
+          users: userTable,
+          courses: courseTable,
+          lessons: lessonTable,
+          exercises: exerciseTable,
+          questions: questionTable,
+          aiJobs: jobTable,
+          classes: classTable,
+          enrollments: enrollmentTable,
+          assignments: assignTable,
+        } = await import("./src/db/schema");
+        const teacherId = req.user.userId;
+
+        const myCourses =
+          req.user.role === "TEACHER"
+            ? await db
+                .select()
+                .from(courseTable)
+                .where(eq(courseTable.teacherId, teacherId))
+            : await db.select().from(courseTable);
+        const myClasses =
+          req.user.role === "TEACHER"
+            ? await db
+                .select()
+                .from(classTable)
+                .where(eq(classTable.teacherId, teacherId))
+            : await db.select().from(classTable);
+        const myClassIds = myClasses.map((c: any) => c.id);
+
+        const enrollmentsRow =
+          myClassIds.length > 0
+            ? await db
+                .select({
+                  studentId: enrollmentTable.studentId,
+                })
+                .from(enrollmentTable)
+                .where(
+                  sql`${enrollmentTable.classId} IN (${sql.join(
+                    (myClassIds as any[]).map((id: any) => sql`${id}`),
+                    sql`, `,
+                  )})`,
+                )
+            : [];
+        const studentIds = Array.from(
+          new Set(enrollmentsRow.map((r: any) => r.studentId)),
+        );
+        const myStudents =
+          studentIds.length > 0
+            ? await db
+                .select({
+                  id: userTable.id,
+                  name: userTable.name,
+                  email: userTable.email,
+                  createdAt: userTable.createdAt,
+                })
+                .from(userTable)
+                .where(
+                  sql`${userTable.id} IN (${sql.join(
+                    (studentIds as any[]).map((id: any) => sql`${id}`),
+                    sql`, `,
+                  )})`,
+                )
+            : [];
+
+        const [
+          courseCount,
+          lessonCount,
+          publishedLessons,
+          exerciseCount,
+          questionCount,
+          aiCount,
+        ] = await Promise.all([
+          db.select({ count: sql<number>`count(*)` }).from(courseTable),
+          db.select({ count: sql<number>`count(*)` }).from(lessonTable),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(lessonTable)
+            .where(eq(lessonTable.status, "PUBLISHED")),
+          db.select({ count: sql<number>`count(*)` }).from(exerciseTable),
+          db.select({ count: sql<number>`count(*)` }).from(questionTable),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(jobTable)
+            .where(eq(jobTable.status, "COMPLETED")),
+        ]);
+
+        // Real recent activity: latest assignments in teacher's classes
+        const recentActivity =
+          myClassIds.length > 0
+            ? await db
+                .select({
+                  id: assignTable.id,
+                  action: sql`'GIAO_BAI'`,
+                  resourceType: sql`'ASSIGNMENT'`,
+                  resourceId: assignTable.id,
+                  title: assignTable.title,
+                  createdAt: assignTable.createdAt,
+                })
+                .from(assignTable)
+                .where(
+                  sql`${assignTable.classId} IN (${sql.join(
+                    (myClassIds as any[]).map((id: any) => sql`${id}`),
+                    sql`, `,
+                  )})`,
+                )
+                .orderBy(sql`${assignTable.createdAt} DESC`)
+                .limit(5)
+            : [];
+
+        res.json({
+          totalStudents: myStudents.length,
+          activeStudents: myStudents.length,
+          courses: myCourses.length,
+          lessons: Number(lessonCount[0]?.count || 0),
+          published: Number(publishedLessons[0]?.count || 0),
+          exercises: Number(exerciseCount[0]?.count || 0),
+          questions: Number(questionCount[0]?.count || 0),
+          aiContent: Number(aiCount[0]?.count || 0),
+          recentActivity,
+          students: myStudents,
+        });
+      } catch (error) {
+        console.error("Admin stats error:", error);
+        res.status(500).json({ error: "Failed to load dashboard statistics" });
+      }
+    },
+  );
 
   let aiStatusCache = { status: "unknown", lastChecked: 0 };
   app.get("/health", async (_req, res) => {
@@ -105,17 +267,21 @@ async function startServer() {
       database = "error";
     }
     const storage = await storageProvider.exists("");
-    
+
     let aiStatus = "not_configured";
     if (process.env.GEMINI_API_KEY) {
-      if (Date.now() - aiStatusCache.lastChecked > 300000) { // 5 mins
+      if (Date.now() - aiStatusCache.lastChecked > 300000) {
+        // 5 mins
         try {
           const { GoogleGenAI } = await import("@google/genai");
           const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
           await ai.models.generateContent({
-            model: process.env.FAST_MODEL || process.env.GEMINI_FAST_MODEL || "gemini-3.8-flash",
+            model:
+              process.env.FAST_MODEL ||
+              process.env.GEMINI_FAST_MODEL ||
+              "gemini-3.8-flash",
             contents: "ping",
-            config: { maxOutputTokens: 1 }
+            config: { maxOutputTokens: 1 },
           });
           aiStatusCache = { status: "ok", lastChecked: Date.now() };
         } catch (e) {
@@ -184,7 +350,7 @@ async function startServer() {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password, classId } = req.body;
       if (
         !name?.trim() ||
         !email?.trim() ||
@@ -212,6 +378,16 @@ async function startServer() {
         return res
           .status(500)
           .json({ error: "Chưa cấu hình vai trò học sinh" });
+      if (classId) {
+        const { classes } = await import("./src/db/schema");
+        const selectedClass = await db
+          .select()
+          .from(classes)
+          .where(eq(classes.id, classId))
+          .limit(1);
+        if (selectedClass.length === 0)
+          return res.status(400).json({ error: "Lớp học không tồn tại" });
+      }
       const userId = randomUUID();
       const displayName = name.trim();
       await db.insert(users).values({
@@ -221,6 +397,33 @@ async function startServer() {
         password: await bcrypt.hash(password, 10),
         roleId: studentRole[0].id,
         createdAt: new Date(),
+      });
+      if (classId) {
+        const { classes, enrollments } = await import("./src/db/schema");
+        const selectedClass = await db
+          .select()
+          .from(classes)
+          .where(eq(classes.id, classId))
+          .limit(1);
+        if (selectedClass.length === 0)
+          return res.status(400).json({ error: "Lớp học không tồn tại" });
+        await db.insert(enrollments).values({
+          id: randomUUID(),
+          studentId: userId,
+          classId,
+          enrolledAt: new Date(),
+        });
+      }
+      const { learnerProfiles } = await import("./src/db/schema");
+      await db.insert(learnerProfiles).values({
+        studentId: userId,
+        grade: null,
+        preferredDifficulty: "medium",
+        learningStreak: 0,
+        totalXp: 0,
+        weakConcepts: "[]",
+        strongConcepts: "[]",
+        lastActiveAt: null,
       });
       const token = jwt.sign(
         { userId, email: normalizedEmail, role: "STUDENT", name: displayName },

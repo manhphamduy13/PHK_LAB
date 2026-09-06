@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { db } from "../db";
+import { eq } from "drizzle-orm";
 import { documents, aiJobs, lessons, chapters, courses } from "../db/schema";
 import { v4 as uuidv4 } from "uuid";
 import { PipelineManager } from "../services/ai/PipelineManager";
@@ -13,13 +14,21 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(requireRole(["SUPER_ADMIN", "TEACHER"]));
 
+router.get("/config", (_req, res) => {
+  res.json({
+    maxPdfSize: appConfig.maxPdfSize,
+    maxAiInputSize: appConfig.maxAiInputSize,
+    aiProvider: process.env.AI_PROVIDER || "gemini",
+  });
+});
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: appConfig.maxPdfSize },
 });
 
-router.post("/upload-pdf", upload.single("file"), async (req, res) => {
+router.post("/upload-pdf", upload.single("file"), async (req: any, res) => {
   try {
     const file = req.file;
     if (!file) {
@@ -64,9 +73,12 @@ router.post("/upload-pdf", upload.single("file"), async (req, res) => {
       updatedAt: new Date(),
     });
 
-    PipelineManager.startPipeline(jobId, docId, storageKey).catch(
-      console.error,
-    );
+    PipelineManager.startPipeline(
+      jobId,
+      docId,
+      storageKey,
+      req.user.userId,
+    ).catch(console.error);
 
     res.json({
       documentId: docId,
@@ -101,6 +113,28 @@ router.get("/jobs/:id", async (req, res) => {
     res.json({ job: jobs[0] });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch job" });
+  }
+});
+
+router.post("/documents/:id/reprocess", async (req: any, res) => {
+  try {
+    const { documents } = await import("../db/schema");
+    const document = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, req.params.id))
+      .limit(1);
+    if (document.length === 0)
+      return res.status(404).json({ error: "Document not found" });
+    const { PipelineManager } = await import("../services/ai/PipelineManager");
+    const result = await PipelineManager.reprocessDocument(
+      req.params.id,
+      req.user.userId,
+    );
+    res.json(result);
+  } catch (error) {
+    console.error("Reprocess error:", error);
+    res.status(500).json({ error: "Failed to reprocess document" });
   }
 });
 
@@ -164,12 +198,19 @@ router.get("/documents/:id/download", async (req, res) => {
   try {
     const { documents } = await import("../db/schema");
     const { eq } = await import("drizzle-orm");
-    const docs = await db.select().from(documents).where(eq(documents.id, req.params.id)).limit(1);
+    const docs = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, req.params.id))
+      .limit(1);
     if (docs.length === 0) return res.status(404).json({ error: "Not found" });
     const doc = docs[0];
     const buffer = await storageProvider.download(doc.path);
-    res.setHeader('Content-Type', doc.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${doc.originalName}"`);
+    res.setHeader("Content-Type", doc.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${doc.originalName}"`,
+    );
     res.send(buffer);
   } catch (error) {
     res.status(500).json({ error: "Failed to download" });
@@ -178,8 +219,25 @@ router.get("/documents/:id/download", async (req, res) => {
 
 router.delete("/documents/:id", async (req, res) => {
   try {
-    const { documents } = await import("../db/schema");
+    const { documents, aiJobs, lessons } = await import("../db/schema");
     const { eq } = await import("drizzle-orm");
+    await db
+      .update(lessons)
+      .set({ sourceDocumentId: null })
+      .where(eq(lessons.sourceDocumentId, req.params.id));
+    await db.delete(aiJobs).where(eq(aiJobs.documentId, req.params.id));
+    const docs = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, req.params.id))
+      .limit(1);
+    if (docs.length > 0 && docs[0].path) {
+      try {
+        await storageProvider.delete(docs[0].path);
+      } catch (storageError) {
+        console.warn("Storage file already missing or invalid:", storageError);
+      }
+    }
     await db.delete(documents).where(eq(documents.id, req.params.id));
     res.json({ success: true });
   } catch (error) {
